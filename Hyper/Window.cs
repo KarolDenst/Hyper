@@ -13,7 +13,7 @@ namespace Hyper
 
         private CancellationTokenSource _debugCancellationTokenSource;
 
-        private readonly float[] _vertices =
+        private float[] _vertices =
         {
             // Position         Texture coordinates
             0.5f,  0.5f,  0.5f, 1.0f, 1.0f, // top right, front
@@ -59,6 +59,8 @@ namespace Hyper
 
         private readonly Vector3[] _cubePositions;
 
+        //private readonly float[] _scaledVertices;
+
         private int _elementBufferObject;
 
         private int _vertexBufferObject;
@@ -90,6 +92,7 @@ namespace Hyper
         {
             StartDebugThreadAsync();
             _cubePositions = GenerateCubePositions(4);
+            _vertices = _vertices.Select((v, i) => { int rem = i % 5; if (rem == 0 || rem == 1 || rem == 2) return 0.5f * v; else return v; }).ToArray();
         }
 
         public override void Close()
@@ -128,18 +131,18 @@ namespace Hyper
             GL.EnableVertexAttribArray(texCoordLocation);
             GL.VertexAttribPointer(texCoordLocation, 2, VertexAttribPointerType.Float, false, 5 * sizeof(float), 3 * sizeof(float));
 
-            _texture = Texture.LoadFromFile("Resources/container.png");
-            _texture.Use(TextureUnit.Texture0);
+            //_texture = Texture.LoadFromFile("Resources/container.png");
+            //_texture.Use(TextureUnit.Texture0);
 
-            _texture2 = Texture.LoadFromFile("Resources/awesomeface.png");
-            _texture2.Use(TextureUnit.Texture1);
+            //_texture2 = Texture.LoadFromFile("Resources/awesomeface.png");
+            //_texture2.Use(TextureUnit.Texture1);
 
-            _shader.SetInt("texture0", 0);
-            _shader.SetInt("texture1", 1);
-            //GL.PolygonMode(MaterialFace.Front, PolygonMode.Line);
+            //_shader.SetInt("texture0", 0);
+            //_shader.SetInt("texture1", 1);
+            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
             // We initialize the camera so that it is 3 units back from where the rectangle is.
             // We also give it the proper aspect ratio.
-            _camera = new Camera(Vector3.UnitZ * 3, Size.X / (float)Size.Y);
+            _camera = new Camera(Vector3.Zero, Size.X / (float)Size.Y);
 
             // We make the mouse cursor invisible and captured so we can have proper FPS-camera movement.
             CursorState = CursorState.Grabbed;
@@ -155,8 +158,8 @@ namespace Hyper
 
             GL.BindVertexArray(_vertexArrayObject);
 
-            _texture.Use(TextureUnit.Texture0);
-            _texture2.Use(TextureUnit.Texture1);
+            //_texture.Use(TextureUnit.Texture0);
+            //_texture2.Use(TextureUnit.Texture1);
             _shader.Use();
 
             for (int i = 0; i < _cubePositions.Length; i++)

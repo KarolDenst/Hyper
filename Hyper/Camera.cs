@@ -83,16 +83,11 @@ namespace Hyper
         public Matrix4 GetViewMatrix()
         {
             Matrix4 V = Matrix4.LookAt(Position, Position + _front, _up);
-            Vector4 ic = new Vector4(V.Column0.Xyz, 0);
-            Vector4 jc = new Vector4(V.Column1.Xyz, 0);
-            Vector4 kc = new Vector4(V.Column2.Xyz, 0);
-
             Vector4 geomEye = PortEucToCurved(Position);
 
-            Matrix4 eyeTranslate = TranslateMatrix(geomEye);
-            Vector4 icp = ic * eyeTranslate;
-            Vector4 jcp = jc * eyeTranslate;
-            Vector4 kcp = kc * eyeTranslate;
+            Vector4 icp = PortEucVectorToCurved(_right, Position);
+            Vector4 jcp = PortEucVectorToCurved(_up, Position);
+            Vector4 kcp = PortEucVectorToCurved(_front, Position);
 
             if (MathHelper.Abs(_curve) < 0.001)
             {
@@ -104,9 +99,8 @@ namespace Hyper
                 icp.Y, jcp.Y, kcp.Y, _curve * geomEye.Y,
                 icp.Z, jcp.Z, kcp.Z, _curve * geomEye.Z,
                 _curve * icp.W, _curve * jcp.W, _curve * kcp.W, geomEye.W);
-            nonEuclidView.Transpose();
-            return nonEuclidView;
 
+            return nonEuclidView;
         }
 
         // | 1/s_x  0      0    0 |
@@ -125,25 +119,42 @@ namespace Hyper
         // Elliptic geometry
         // aS = -Sin(dmin + dmax) / Sin(dmax - dmin);
         // bS = -2 * Sin(dmin) * Sin(dmax) / Sin(dmax - dmin);
+
         public Matrix4 GetProjectionMatrix()
         {
-            Matrix4 P = Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
-            float sFovX = P.Column0.X;
-            float sFovY = P.Column1.Y;
-            float fp = 1f; // scale front clipping plane according to the global scale factor of the scene
+            float near = 0.001f;
+            float far = 100f;
+            float sy = MathF.Tan(_fov / 2);
+            float sx = sy * AspectRatio;
 
-            if (_curve <= 0.00001)
+            float alpha, beta;
+            if (MathHelper.Abs(_curve) <= 0.00001)
             {
-                return P;
+                float denom = far - near;
+                alpha = -(far - near) / denom;
+                beta = -(2 * near * far) / denom;
             }
-            Matrix4 nonEuclidProj = new Matrix4(
-                sFovX, 0, 0, 0,
-                0, sFovY, 0, 0,
-                0, 0, 0, -1,
-                0, 0, -fp, 0
+
+            else if (_curve < 0)
+            {
+                float denom = MathF.Sinh(far - near);
+                alpha = -MathF.Sinh(near + far) / denom;
+                beta = -2 * MathF.Sinh(near) * MathF.Sinh(far) / denom;
+            }
+            else
+            {
+                float denom = MathF.Sin(far - near);
+                alpha = -MathF.Sin(near + far) / denom;
+                beta = -2 * MathF.Sin(near) * MathF.Sin(far) / denom;
+            }
+            Matrix4 proj = new Matrix4(
+                1 / sx, 0, 0, 0,
+                0, 1 / sy, 0, 0,
+                0, 0, alpha, -1,
+                0, 0, beta, 0
                 );
-            nonEuclidProj.Transpose();
-            return nonEuclidProj;
+
+            return proj;
         }
 
         public Vector4 PortEucToCurved(Vector3 eucPoint)
@@ -159,6 +170,12 @@ namespace Hyper
             if (_curve > 0) return new Vector4(p / dist * (float)MathHelper.Sin(dist), (float)MathHelper.Cos(dist));
             if (_curve < 0) return new Vector4(p / dist * (float)MathHelper.Sinh(dist), (float)MathHelper.Cosh(dist));
             return eucPoint;
+        }
+
+        private Vector4 PortEucVectorToCurved(Vector3 eucVector, Vector3 start)
+        {
+            Vector4 vec = new Vector4(eucVector, 0);
+            return vec * TranslateMatrix(PortEucToCurved(start));
         }
 
         private void UpdateVectors()
@@ -194,7 +211,7 @@ namespace Hyper
                 to.X, to.Y, to.Z, 1);
             }
 
-            T.Transpose();
+
             return T;
         }
 
