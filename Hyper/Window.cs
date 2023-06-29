@@ -99,13 +99,15 @@ namespace Hyper
         {
             base.OnLoad();
 
+
             GL.ClearColor(0f, 0f, 0f, 1.0f);
             GL.Enable(EnableCap.DepthTest);
+            //GL.Disable(EnableCap.CullFace); // This hepls a little bit but makes performence worse
 
-            _shader = new Shader("Shaders/shader.vert", "Shaders/shader.frag");
+            _shader = new Shader("Shaders/shader.vert", "Shaders/shader.frag", "", "");
             _shader.Use();
 
-            _objects = GenerateObjects(() => GenerateFlat(10));
+            _objects = GenerateObjects(() => GenerateFlat(20));
 
             // Position attribute
             var vertexLocation = _shader.GetAttribLocation("aPosition");
@@ -161,7 +163,7 @@ namespace Hyper
 
                     var model = Matrix4.CreateTranslation(mesh.Position - _cameraPosition);
 
-                    var scale = Matrix4.CreateScale(1f); // will need to change scale
+                    var scale = Matrix4.CreateScale(0.1f); // will need to change scale
                     _shader.SetMatrix4("model", scale * model);
 
                     GL.DrawElements(PrimitiveType.Triangles, mesh.numberOfIndices, DrawElementsType.UnsignedInt, 0);
@@ -290,6 +292,10 @@ namespace Hyper
                         case "camera":
                             _camera.Command(args);
                             break;
+                        //case "cooling":
+                        //    if (args[0] == "enable") isCoolingEnabled = true;
+                        //    else if (args[0] == "disable") isCoolingEnabled = false;
+                        //    break;
                     }
                 }
                 catch (Exception ex)
@@ -331,7 +337,7 @@ namespace Hyper
                         float x = (i - n / 2f);
                         float y = k;
                         float z = (j - n / 2f);
-                        positions.Add(new Vector3(x, y, z));
+                        positions.Add(0.1f * new Vector3(x, y, z));
                     }
                 }
             }

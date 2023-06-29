@@ -27,6 +27,10 @@ namespace Hyper
 
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
+        private float _nearPlane = 0.01f;
+
+        private float _farPlane = 100f;
+
         public Camera(Vector3 position, float aspectRatio)
         {
             Position = position;
@@ -105,7 +109,7 @@ namespace Hyper
 
         public Matrix4 GetProjectionMatrix()
         {
-            Matrix4 P = Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
+            Matrix4 P = Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, _nearPlane, _farPlane);
             float sFovX = P.Column0.X;
             float sFovY = P.Column1.Y;
             float fp = 0.01f; // scale front clipping plane according to the global scale factor of the scene
@@ -231,13 +235,20 @@ namespace Hyper
                 case "curve":
                     if (args[1] == "h")
                         _curve = -1f;
-                    if (args[1] == "s")
+                    else if (args[1] == "s")
                         _curve = 1f;
-                    if (args[1] == "e")
+                    else if (args[1] == "e")
                         _curve = 0f;
+                    else _curve = float.Parse(args[1]);
                     break;
                 case "speed":
                     _cameraSpeed = float.Parse(args[1]);
+                    break;
+                case "near_plane":
+                    _nearPlane = float.Parse(args[1]);
+                    break;
+                case "far_plane":
+                    _farPlane = float.Parse(args[1]);
                     break;
             }
         }

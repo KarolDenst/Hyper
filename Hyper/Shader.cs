@@ -14,7 +14,7 @@ namespace Hyper
         // Shaders are written in GLSL, which is a language very similar to C in its semantics.
         // The GLSL source is compiled *at runtime*, so it can optimize itself for the graphics card it's currently being used on.
         // A commented example of GLSL can be found in shader.vert.
-        public Shader(string vertPath, string fragPath)
+        public Shader(string vertPath, string fragPath, string controlPath = "", string evalPath = "")
         {
             // There are several different types of shaders, but the only two you need for basic rendering are the vertex and fragment shaders.
             // The vertex shader is responsible for moving around vertices, and uploading that data to the fragment shader.
@@ -40,6 +40,23 @@ namespace Hyper
             GL.ShaderSource(fragmentShader, shaderSource);
             CompileShader(fragmentShader);
 
+            int controlShader = 0;
+            int evalShader = 0;
+            if (controlPath != string.Empty && evalPath != string.Empty)
+            {
+                // We do the same for the control shader.
+                shaderSource = File.ReadAllText(controlPath);
+                controlShader = GL.CreateShader(ShaderType.TessControlShader);
+                GL.ShaderSource(controlShader, shaderSource);
+                CompileShader(controlShader);
+
+                // We do the same for the eval shader.
+                shaderSource = File.ReadAllText(evalPath);
+                evalShader = GL.CreateShader(ShaderType.TessEvaluationShader);
+                GL.ShaderSource(evalShader, shaderSource);
+                CompileShader(evalShader);
+            }
+
             // These two shaders must then be merged into a shader program, which can then be used by OpenGL.
             // To do this, create a program...
             Handle = GL.CreateProgram();
@@ -47,6 +64,8 @@ namespace Hyper
             // Attach both shaders...
             GL.AttachShader(Handle, vertexShader);
             GL.AttachShader(Handle, fragmentShader);
+            if (controlPath != string.Empty && evalPath != string.Empty) GL.AttachShader(Handle, controlShader);
+            if (controlPath != string.Empty && evalPath != string.Empty) GL.AttachShader(Handle, evalShader);
 
             // And then link them together.
             LinkProgram(Handle);
@@ -55,8 +74,12 @@ namespace Hyper
             // Detach them, and then delete them.
             GL.DetachShader(Handle, vertexShader);
             GL.DetachShader(Handle, fragmentShader);
+            if (controlPath != string.Empty && evalPath != string.Empty) GL.DetachShader(Handle, controlShader);
+            if (controlPath != string.Empty && evalPath != string.Empty) GL.DetachShader(Handle, evalShader);
             GL.DeleteShader(fragmentShader);
             GL.DeleteShader(vertexShader);
+            if (controlPath != string.Empty && evalPath != string.Empty) GL.DeleteShader(controlShader);
+            if (controlPath != string.Empty && evalPath != string.Empty) GL.DeleteShader(evalShader);
 
             // The shader is now ready to go, but first, we're going to cache all the shader uniform locations.
             // Querying this from the shader is very slow, so we do it once on initialization and reuse those values
@@ -107,7 +130,8 @@ namespace Hyper
             if (code != (int)All.True)
             {
                 // We can use `GL.GetProgramInfoLog(program)` to get information about the error.
-                throw new Exception($"Error occurred whilst linking Program({program})");
+                string infoLog = GL.GetProgramInfoLog(program);
+                throw new Exception($"Error occurred whilst linking Program({program}):\n{infoLog}");
             }
         }
 
