@@ -103,8 +103,9 @@ namespace Hyper
             GL.ClearColor(0f, 0f, 0f, 1.0f);
             GL.Enable(EnableCap.DepthTest);
             //GL.Disable(EnableCap.CullFace); // This hepls a little bit but makes performence worse
+            GL.PatchParameter(PatchParameterInt.PatchVertices, 4);
 
-            _shader = new Shader("Shaders/shader.vert", "Shaders/shader.frag", "", "");
+            _shader = new Shader("Shaders/shader.vert", "Shaders/shader.frag", "Shaders/shader.tesc", "Shaders/shader.tese");
             _shader.Use();
 
             _objects = GenerateObjects(() => GenerateFlat(20));
@@ -163,10 +164,10 @@ namespace Hyper
 
                     var model = Matrix4.CreateTranslation(mesh.Position - _cameraPosition);
 
-                    var scale = Matrix4.CreateScale(0.1f); // will need to change scale
+                    var scale = Matrix4.CreateScale(1f); // will need to change scale
                     _shader.SetMatrix4("model", scale * model);
 
-                    GL.DrawElements(PrimitiveType.Triangles, mesh.numberOfIndices, DrawElementsType.UnsignedInt, 0);
+                    GL.DrawElements(PrimitiveType.Patches, mesh.numberOfIndices, DrawElementsType.UnsignedInt, 0);
                 }
             }
 
@@ -337,7 +338,7 @@ namespace Hyper
                         float x = (i - n / 2f);
                         float y = k;
                         float z = (j - n / 2f);
-                        positions.Add(0.1f * new Vector3(x, y, z));
+                        positions.Add(new Vector3(x, y, z));
                     }
                 }
             }
