@@ -33,6 +33,7 @@ namespace Hyper
         public Window(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
             : base(gameWindowSettings, nativeWindowSettings)
         {
+            var test = AssimpTest.LoadObj("Objects/white_cube.obj");
             StartDebugThreadAsync();
         }
 
