@@ -11,7 +11,7 @@ var nativeWindowSettings = new NativeWindowSettings()
     Flags = ContextFlags.ForwardCompatible,
 };
 
-using (var window = new Window(GameWindowSettings.Default, nativeWindowSettings))
+using (var window = new WindowNoCubes(GameWindowSettings.Default, nativeWindowSettings))
 {
     window.RenderFrequency = 30.0f;
     window.Run();

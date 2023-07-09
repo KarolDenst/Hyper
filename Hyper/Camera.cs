@@ -23,7 +23,7 @@ namespace Hyper
 
         private float _fov = MathHelper.PiOver2;
 
-        private float _cameraSpeed = 50f;
+        private float _cameraSpeed = 5f;
 
         private float _near;
 
@@ -75,12 +75,12 @@ namespace Hyper
 
         public Matrix4 GetViewMatrix()
         {
-            Matrix4 V = Matrix4.LookAt(_position, _position + _front, _up);
+            Matrix4 V = Matrix4.LookAt(ReferencePointPosition, ReferencePointPosition + _front, _up);
             Vector4 ic = new Vector4(V.Column0.Xyz, 0);
             Vector4 jc = new Vector4(V.Column1.Xyz, 0);
             Vector4 kc = new Vector4(V.Column2.Xyz, 0);
 
-            Vector4 geomEye = PortEucToCurved(_position);
+            Vector4 geomEye = PortEucToCurved(ReferencePointPosition);
 
             Matrix4 eyeTranslate = TranslateMatrix(geomEye);
             Vector4 icp = ic * eyeTranslate;
