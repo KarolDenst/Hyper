@@ -53,17 +53,22 @@ namespace Hyper.MarchingCubes
                 {
                     for (int z = position.Z; z < depth + position.Z; z++)
                     {
-                        float density = y;
+                        float density = (y*y + z * z + x * x) / 100f; //bigger number bigger sphere
                         const float offset = -0.5f;
+                        const float mountainProb = 0.4f;
                         int octaves = _octaves;
                         float freq = _initialFreq;
                         float amp = _initialAmp;
+                        if (perlin.GetNoise3D(x * freq / 8, 0, z * freq / 8) < mountainProb)
+                            density -= SmoothAbs((perlin.GetNoise3D(x * freq / 8, 0, z * freq / 8) - mountainProb) 
+                                      * (perlin.GetNoise3D(x * freq / 2, 0, z * freq / 2) + offset) * amp * 256);
                         for (int i = 0; i < octaves; i++)
                         {
                             density += (perlin.GetNoise3D(x * freq, y * freq, z * freq) + offset) * amp;
                             freq *= _freqMul;
                             amp *= _ampMul;
                         }
+                        
                         scalarField[x - position.X, y - position.Y, z - position.Z] = density - _maxAmp;
                     }
                 }
@@ -85,6 +90,11 @@ namespace Hyper.MarchingCubes
             }
 
             return maxAmp;
+        }
+
+        private float SmoothAbs(float x)
+        {
+            return Single.Sqrt(x * x + 1) - 1;
         }
     }
 }

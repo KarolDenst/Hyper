@@ -27,7 +27,7 @@ namespace Hyper
 
         public Scene(float aspectRatio)
         {
-            Generator generator = new Generator(1);
+            Generator generator = new Generator(69, initialAmp: 8);
 
             Chunks = GetChunks(generator);
             LightSources = GetLightSources(generator);
@@ -139,12 +139,15 @@ namespace Hyper
 
         private static List<Chunk> GetChunks(Generator generator)
         {
-            var chunks = new List<Chunk>
-            {
-                generator.GenerateChunk(new Vector3i(0, 0, 0)),
-                generator.GenerateChunk(new Vector3i(Chunk.Size - 1, 0, 0)),
-                generator.GenerateChunk(new Vector3i(0, 0, Chunk.Size - 1))
-            };
+            var chunks = new List<Chunk>();
+            const int radius = 3;
+            for(int i = -radius; i <= radius; i++){
+                for(int j = -radius; j <= radius; j++){
+                    for(int k = -radius; k <= radius; k++){
+                        chunks.Add(generator.GenerateChunk(new Vector3i(i * (Chunk.Size  - 1),j * (Chunk.Size - 1),k * (Chunk.Size - 1))));
+                    }
+                }
+            }
 
             return chunks;
         }
@@ -152,8 +155,8 @@ namespace Hyper
         private static List<LightSource> GetLightSources(Generator generator)
         {
             var lightSources = new List<LightSource> {
-                new(CubeMesh.Vertices, new Vector3(10f, 7f + generator.AvgElevation, 10f), new Vector3(1f, 1f, 1f)),
-                new(CubeMesh.Vertices, new Vector3(4f, 7f + generator.AvgElevation, 4f), new Vector3(0f, 1f, 0.5f)),
+                new(CubeMesh.Vertices, new Vector3(30f, 7f + generator.AvgElevation, 10f), new Vector3(1f, 1f, 1f)),
+                new(CubeMesh.Vertices, new Vector3(34f, 7f + generator.AvgElevation, 4f), new Vector3(0f, 1f, 0.5f)),
             };
 
             return lightSources;
