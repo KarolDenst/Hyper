@@ -22,9 +22,9 @@ internal class Mesh : IDisposable
         NumberOfVertices = vertices.Length;
     }
 
-    public virtual void Render(Shader shader, float scale, Vector3 cameraPosition)
+    public virtual void Render(Shader shader, float scale)
     {
-        var model = Matrix4.CreateTranslation((Position - cameraPosition) * scale);
+        var model = Matrix4.CreateTranslation(Position * scale);
         var scaleMatrix = Matrix4.CreateScale(scale);
         shader.SetMatrix4("model", scaleMatrix * model);
 

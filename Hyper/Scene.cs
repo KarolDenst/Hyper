@@ -21,7 +21,7 @@ internal class Scene : IInputSubscriber
 
     public readonly HudManager Hud;
 
-    public const float Scale = 0.1f;
+    public const float Scale = 0.03f;
 
     private readonly Shader _objectShader;
 
@@ -52,19 +52,19 @@ internal class Scene : IInputSubscriber
 
         foreach (var chunk in Chunks)
         {
-            chunk.Render(_objectShader, Scale, Camera.ReferencePointPosition);
+            chunk.Render(_objectShader, Scale);
         }
 
         foreach (var projectile in Projectiles)
         {
-            projectile.Render(_objectShader, Scale, Camera.ReferencePointPosition);
+            projectile.Render(_objectShader, Scale);
         }
 
         SetUpLightingShaderParams();
 
         foreach (var light in LightSources)
         {
-            light.Render(_lightSourceShader, Scale, Camera.ReferencePointPosition);
+            light.Render(_lightSourceShader, Scale);
         }
 
         Hud.Render();
@@ -93,7 +93,7 @@ internal class Scene : IInputSubscriber
         for (int i = 0; i < LightSources.Count; i++)
         {
             _objectShader.SetVector3($"lightColor[{i}]", LightSources[i].Color);
-            _objectShader.SetVector4($"lightPos[{i}]", GeomPorting.EucToCurved((LightSources[i].Position - Camera.ReferencePointPosition) * Scale, Camera.Curve));
+            _objectShader.SetVector4($"lightPos[{i}]", GeomPorting.EucToCurved(LightSources[i].Position * Scale, Camera.Curve));
         }
     }
 
@@ -108,13 +108,26 @@ internal class Scene : IInputSubscriber
 
     private static List<Chunk> GetChunks(ChunkFactory generator)
     {
-        var chunks = new List<Chunk>
+        var chunks = MakeSquare(2, generator);
+
+        return chunks;
+    }
+
+    private static List<Chunk> MakeSquare(int chunksPerSide, ChunkFactory generator)
+    {
+        if (chunksPerSide % 2 != 0)
+            throw new ArgumentException("# of chunks/side must be even");
+
+        List<Chunk> chunks = new List<Chunk>();
+        for (int x = -chunksPerSide / 2; x < chunksPerSide / 2; x++)
         {
-            generator.GenerateChunk(new Vector3i(0, 0, 0)),
-            generator.GenerateChunk(new Vector3i(Chunk.Size - 1, 0, 0)),
-            generator.GenerateChunk(new Vector3i(0, 0, Chunk.Size - 1)),
-            generator.GenerateChunk(new Vector3i(Chunk.Size - 1, 0, Chunk.Size - 1))
-        };
+            for (int y = -chunksPerSide / 2; y < chunksPerSide / 2; y++)
+            {
+                int offset = Chunk.Size - 1;
+
+                chunks.Add(generator.GenerateChunk(new Vector3i(offset * x, 0, offset * y)));
+            }
+        }
 
         return chunks;
     }
@@ -133,7 +146,7 @@ internal class Scene : IInputSubscriber
     {
         var camera = new Camera(aspectRatio, 0.01f, 100f, Scale)
         {
-            ReferencePointPosition = (5f + _scalarFieldGenerator.AvgElevation) * Vector3.UnitY
+            Position = (5f + _scalarFieldGenerator.AvgElevation) * Vector3.UnitY * Scale
         };
 
         return camera;
@@ -169,7 +182,7 @@ internal class Scene : IInputSubscriber
         context.RegisterUpdateFrameCallback((e) => UpdateProjectiles((float)e.Time));
         context.RegisterMouseButtonHeldCallback(MouseButton.Left, (e) =>
         {
-            var position = Camera.ReferencePointPosition;
+            var position = Camera.Position * (1f / Scale);
 
             foreach (var chunk in Chunks)
             {
@@ -179,7 +192,7 @@ internal class Scene : IInputSubscriber
 
         context.RegisterMouseButtonHeldCallback(MouseButton.Right, (e) =>
         {
-            var position = Camera.ReferencePointPosition;
+            var position = Camera.Position * (1f / Scale);
 
             foreach (var chunk in Chunks)
             {
@@ -189,7 +202,7 @@ internal class Scene : IInputSubscriber
 
         context.RegisterMouseButtonDownCallback(MouseButton.Middle, () =>
         {
-            var projectile = new Projectile(CubeMesh.Vertices, Camera.ReferencePointPosition, Camera.Front, 100f, 5f);
+            var projectile = new Projectile(CubeMesh.Vertices, Camera.Position * (1f / Scale), Camera.Front, 100f, 5f);
             Projectiles.Add(projectile);
         });
     }

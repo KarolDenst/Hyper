@@ -11,8 +11,6 @@ internal class Camera : Commandable, IInputSubscriber
 {
     public float Curve { get; set; } = 0f;
 
-    public Vector3 ReferencePointPosition { get; set; } = Vector3.Zero;
-
     public Vector3 Front { get; private set; } = -Vector3.UnitZ;
 
     private Vector3 _up = Vector3.UnitY;
@@ -31,7 +29,7 @@ internal class Camera : Commandable, IInputSubscriber
 
     private readonly float _far;
 
-    private readonly Vector3 _position;
+    public Vector3 Position { get; set; }
 
     private bool _firstMove = true;
 
@@ -46,7 +44,7 @@ internal class Camera : Commandable, IInputSubscriber
         AspectRatio = aspectRatio;
         _near = near;
         _far = far;
-        _position = Vector3.UnitY * scale;
+        _cameraSpeed = 100f * scale;
 
         RegisterCallbacks();
     }
@@ -86,7 +84,7 @@ internal class Camera : Commandable, IInputSubscriber
 
     public Matrix4 GetViewMatrix()
     {
-        return Matrices.ViewMatrix(_position, Front, _up, Curve);
+        return Matrices.ViewMatrix(Position, Front, _up, Curve);
     }
 
     public Matrix4 GetProjectionMatrix()
@@ -153,7 +151,7 @@ internal class Camera : Commandable, IInputSubscriber
                 float x = float.Parse(args[1]);
                 float y = float.Parse(args[2]);
                 float z = float.Parse(args[3]);
-                ReferencePointPosition = new Vector3(x, y, z);
+                Position = new Vector3(x, y, z);
                 break;
             default:
                 CommandNotFound();
@@ -169,7 +167,7 @@ internal class Camera : Commandable, IInputSubscriber
                 Console.WriteLine(Fov);
                 break;
             case "position":
-                Console.WriteLine(ReferencePointPosition);
+                Console.WriteLine(Position);
                 break;
             default:
                 CommandNotFound();
@@ -179,7 +177,7 @@ internal class Camera : Commandable, IInputSubscriber
 
     private void UpdatePosition(Vector3 direction, float time)
     {
-        ReferencePointPosition += direction * _cameraSpeed * time;
+        Position += direction * _cameraSpeed * time;
     }
 
     public void RegisterCallbacks()
