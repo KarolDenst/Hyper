@@ -23,7 +23,9 @@ internal class Camera : Commandable, IInputSubscriber
 
     private float _fov = MathHelper.PiOver2;
 
-    private float _cameraSpeed = 100f;
+    private float _scale;
+
+    private float _cameraSpeed;
 
     private readonly float _near;
 
@@ -44,7 +46,8 @@ internal class Camera : Commandable, IInputSubscriber
         AspectRatio = aspectRatio;
         _near = near;
         _far = far;
-        _cameraSpeed = 100f * scale;
+        _scale = scale;
+        _cameraSpeed = 100f * _scale;
 
         RegisterCallbacks();
     }
@@ -143,7 +146,7 @@ internal class Camera : Commandable, IInputSubscriber
                     Curve = float.Parse(args[1]);
                 break;
             case "speed":
-                _cameraSpeed = float.Parse(args[1]);
+                _cameraSpeed = float.Parse(args[1]) * _scale;
                 break;
             case "position":
                 if (args.Length != 4)
