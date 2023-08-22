@@ -33,12 +33,12 @@ internal class CarMesh
         FrontRightWheel.RigidPose = frontRightWheelPose;
     }
 
-    public void Render(Shader shader, float scale, Vector3 cameraPosition)
+    public void Render(Shader shader, float scale, Vector3 cameraPosition, float curve)
     {
-        LowerPart.RenderFullDescription(shader, scale, cameraPosition);
-        BackLeftWheel.RenderFullDescription(shader, scale, cameraPosition);
-        BackRightWheel.RenderFullDescription(shader, scale, cameraPosition);
-        FrontLeftWheel.RenderFullDescription(shader, scale, cameraPosition);
-        FrontRightWheel.RenderFullDescription(shader, scale, cameraPosition);
+        LowerPart.RenderFullDescription(shader, scale, cameraPosition, curve);
+        BackLeftWheel.RenderFullDescription(shader, scale, cameraPosition, curve);
+        BackRightWheel.RenderFullDescription(shader, scale, cameraPosition, curve);
+        FrontLeftWheel.RenderFullDescription(shader, scale, cameraPosition, curve);
+        FrontRightWheel.RenderFullDescription(shader, scale, cameraPosition, curve);
     }
 }

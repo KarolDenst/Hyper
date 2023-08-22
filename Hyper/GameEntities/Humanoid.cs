@@ -31,8 +31,8 @@ internal class Humanoid
         PhysicalCharacter.UpdateCharacterGoals(simulation, Conversions.ToNumericsVector(viewDirection), simulationTimestepDuration, tryJump, sprint, Conversions.ToNumericsVector(movementDirection));
     }
 
-    public void Render(Shader shader, float scale, Vector3 cameraPosition)
-        => Character.Render(PhysicalCharacter.Pose, shader, scale, cameraPosition);
+    public void Render(Shader shader, float scale, Vector3 cameraPosition, float curve)
+        => Character.Render(PhysicalCharacter.Pose, shader, scale, cameraPosition, curve);
 
     private void UpdateMovementAnimation(Animation.Characters.CharacterAnimationType animationType)
     {

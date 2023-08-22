@@ -16,7 +16,7 @@ internal class CowboyModel : Model
     {
         ModelPath = Path.GetFullPath("Animation/Characters/Cowboy/Resources/model.dae");
         TexturePath = Path.GetFullPath("Animation/Characters/Cowboy/Resources/texture.png");
-        LocalScale = 0.04f;
+        LocalScale = 0.02f;
         LocalTranslation = new Vector3(0, -5, 0);
     }
 

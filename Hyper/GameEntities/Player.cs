@@ -9,10 +9,10 @@ internal class Player : Humanoid
     public Player(PhysicalCharacter physicalCharacter) : base(physicalCharacter)
     { }
 
-    public void Render(Shader shader, float scale, Vector3 cameraPosition, bool isFirstPerson)
+    public void Render(Shader shader, float scale, Vector3 cameraPosition, bool isFirstPerson, float curve)
     {
         if (!isFirstPerson)
-            Character.Render(PhysicalCharacter.Pose, shader, scale, cameraPosition);
+            Character.Render(PhysicalCharacter.Pose, shader, scale, cameraPosition, curve);
     }
 
     // in general this can depend on the properties of the character e.g. size etc

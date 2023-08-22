@@ -1,4 +1,5 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using Hyper.MathUtils;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
 namespace Hyper.Meshes;
@@ -12,9 +13,9 @@ internal class LightSource : Mesh
         Color = color;
     }
 
-    public override void Render(Shader shader, float scale, Vector3 cameraPosition)
+    public override void Render(Shader shader, float scale, Vector3 cameraPosition, float curve)
     {
-        var modelLs = Matrix4.CreateTranslation((Position - cameraPosition) * scale);
+        var modelLs = Matrix4.CreateTranslation(GeomPorting.CreateTranslationTarget(Position, cameraPosition, curve) * scale);
         var scaleLs = Matrix4.CreateScale(scale);
         shader.SetMatrix4("model", scaleLs * modelLs);
         shader.SetVector3("color", Color);

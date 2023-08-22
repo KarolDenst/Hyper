@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using BepuPhysics;
+using Hyper.MathUtils;
 using Hyper.TypingUtils;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
@@ -30,9 +31,9 @@ internal class Mesh : IDisposable
         NumberOfVertices = Vertices.Length;
     }
 
-    public virtual void Render(Shader shader, float scale, Vector3 cameraPosition)
+    public virtual void Render(Shader shader, float scale, Vector3 cameraPosition, float curve)
     {
-        var model = Matrix4.CreateTranslation((Position - cameraPosition) * scale);
+        var model = Matrix4.CreateTranslation(GeomPorting.CreateTranslationTarget(Position, cameraPosition, curve) * scale);
         var scaleMatrix = Matrix4.CreateScale(scale);
         shader.SetMatrix4("model", scaleMatrix * model);
 
@@ -40,9 +41,10 @@ internal class Mesh : IDisposable
         GL.DrawArrays(PrimitiveType.Triangles, 0, NumberOfVertices);
     }
 
-    public virtual void RenderFullDescription(Shader shader, float scale, Vector3 cameraPosition)
+    public virtual void RenderFullDescription(Shader shader, float scale, Vector3 cameraPosition, float curve)
     {
-        var translation = Matrix4.CreateTranslation((Conversions.ToOpenTKVector(RigidPose.Position) - cameraPosition) * scale);
+        var position = Conversions.ToOpenTKVector(RigidPose.Position);
+        var translation = Matrix4.CreateTranslation(GeomPorting.CreateTranslationTarget(position, cameraPosition, curve) * scale);
         var scaleMatrix = Matrix4.CreateScale(scale);
         var rotation = Conversions.ToOpenTKMatrix(System.Numerics.Matrix4x4.CreateFromQuaternion(RigidPose.Orientation));
 

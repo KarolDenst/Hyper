@@ -134,10 +134,10 @@ internal class PhysicalCharacter
     }
 
 #if BOUNDING_BOXES
-    public void RenderBoundingBox(Shader shaderBoundingBox, float scale, OpenTK.Mathematics.Vector3 cameraPosition)
+    public void RenderBoundingBox(Shader shaderBoundingBox, float scale, OpenTK.Mathematics.Vector3 cameraPosition, float curve)
     {
         TurnOnWireframe();
-        BoundingBoxMesh.RenderFullDescription(shaderBoundingBox, scale, cameraPosition);
+        BoundingBoxMesh.RenderFullDescription(shaderBoundingBox, scale, cameraPosition, curve);
         TurnOffWireframe();
     }
 

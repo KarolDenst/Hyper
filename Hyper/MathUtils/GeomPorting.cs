@@ -30,4 +30,20 @@ internal static class GeomPorting
         if (curve < 0) return new Vector4(p / dist * (float)MathHelper.Sinh(dist), (float)MathHelper.Cosh(dist));
         return eucPoint;
     }
+
+    /// <summary>
+    /// Creates translation target valid in all geometries.
+    /// Since in the hyperbolic geometry the camera is fixed, any request to change camera position must be reflected in changing the object's position.
+    /// </summary>
+    /// <param name="to">World-space coordinates of the translation target</param>
+    /// <param name="referencePoint">Reference point of the camera</param>
+    /// <param name="curve">Geometry curvature</param>
+    /// <returns></returns>
+    public static Vector3 CreateTranslationTarget(Vector3 to, Vector3 referencePoint, float curve)
+    {
+        if (curve >= 0)
+            return to;
+
+        return to - referencePoint;
+    }
 }

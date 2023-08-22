@@ -1,4 +1,5 @@
 ﻿using BepuPhysics;
+using Hyper.MathUtils;
 using Hyper.TypingUtils;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
@@ -30,12 +31,13 @@ internal abstract class Model
         _localTranslation = localTranslation;
     }
 
-    public void Render(RigidPose rigidPose, Shader shader, float globalScale, Vector3 cameraPosition)
+    public void Render(RigidPose rigidPose, Shader shader, float globalScale, Vector3 cameraPosition, float curve)
     {
         _texture.Use(TextureUnit.Texture0);
 
         var localTranslationMatrix = Matrix4.CreateTranslation(_localTranslation);
-        var translation = Matrix4.CreateTranslation((Conversions.ToOpenTKVector(rigidPose.Position) - cameraPosition) * globalScale);
+        var position = Conversions.ToOpenTKVector(rigidPose.Position);
+        var translation = Matrix4.CreateTranslation(GeomPorting.CreateTranslationTarget(position, cameraPosition, curve) * globalScale);
         var localScaleMatrix = Matrix4.CreateScale(_localScale);
         var rotation = Conversions.ToOpenTKMatrix(System.Numerics.Matrix4x4.CreateFromQuaternion(rigidPose.Orientation));
         var globalScaleMatrix = Matrix4.CreateScale(globalScale);

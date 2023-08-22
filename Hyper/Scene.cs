@@ -30,7 +30,7 @@ internal class Scene : IInputSubscriber
 
     public HudManager Hud { get; private set; }
 
-    private readonly float _scale = 0.1f;
+    private readonly float _scale = 0.05f; // spherical must fit in
 
     private readonly Shader _objectShader;
 
@@ -107,35 +107,35 @@ internal class Scene : IInputSubscriber
 
         foreach (var chunk in _chunks)
         {
-            chunk.Render(_objectShader, _scale, Camera.ReferencePointPosition);
+            chunk.Render(_objectShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
         }
 
         foreach (var projectile in _projectiles)
         {
-            projectile.Mesh.Render(_objectShader, _scale, Camera.ReferencePointPosition);
+            projectile.Mesh.Render(_objectShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
         }
 
-        _simpleCar.Mesh.Render(_objectShader, _scale, Camera.ReferencePointPosition);
+        _simpleCar.Mesh.Render(_objectShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
 
         ShaderFactory.SetUpLightingShaderParams(_lightSourceShader, Camera);
 
         foreach (var light in _lightSources)
         {
-            light.Render(_lightSourceShader, _scale, Camera.ReferencePointPosition);
+            light.Render(_lightSourceShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
         }
 
         ShaderFactory.SetUpCharacterShaderParams(_characterShader, Camera, _lightSources, _scale);
 
 #if BOUNDING_BOXES
-        _player.PhysicalCharacter.RenderBoundingBox(_objectShader, _scale, Camera.ReferencePointPosition);
+        _player.PhysicalCharacter.RenderBoundingBox(_objectShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
 #endif
-        _player.Render(_characterShader, _scale, Camera.ReferencePointPosition, Camera.FirstPerson);
+        _player.Render(_characterShader, _scale, Camera.ReferencePointPosition, Camera.FirstPerson, Camera.Curve);
 
         foreach (var bot in _bots)
         {
-            bot.Render(_characterShader, _scale, Camera.ReferencePointPosition);
+            bot.Render(_characterShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
 #if BOUNDING_BOXES
-            bot.PhysicalCharacter.RenderBoundingBox(_objectShader, _scale, Camera.ReferencePointPosition);
+            bot.PhysicalCharacter.RenderBoundingBox(_objectShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
 #endif
         }
 

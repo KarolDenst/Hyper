@@ -3,7 +3,6 @@ using Hyper.GameEntities;
 using Hyper.MathUtils;
 using Hyper.TypingUtils;
 using Hyper.UserInput;
-using NLog;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
@@ -41,16 +40,19 @@ internal class Camera : Commandable, IInputSubscriber
 
     public bool FirstPerson { get; set; }
 
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private readonly float _scale;
 
-    public Vector3 ViewPosition { get; private init; }
+    public Vector3 ViewPosition { get => Curve >= 0 ? ReferencePointPosition * _scale : _fixedViewPosition; }
+
+    private readonly Vector3 _fixedViewPosition;
 
     public Camera(float aspectRatio, float near, float far, float scale)
     {
         AspectRatio = aspectRatio;
         _near = near;
         _far = far;
-        ViewPosition = Vector3.UnitY * scale;
+        _fixedViewPosition = Vector3.UnitY * scale;
+        _scale = scale;
 
         RegisterCallbacks();
     }

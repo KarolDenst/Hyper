@@ -1,5 +1,5 @@
 ﻿namespace Hyper.TypingUtils;
-internal class Conversions
+internal static class Conversions
 {
     public static System.Numerics.Vector2 ToNumericsVector(OpenTK.Mathematics.Vector2 v)
         => new(v.X, v.Y);
@@ -26,6 +26,9 @@ internal class Conversions
         => new(v.X, v.Y, v.Z);
 
     public static OpenTK.Mathematics.Vector3 ToOpenTKVector(Assimp.Vector3D v)
+        => new(v.X, v.Y, v.Z);
+
+    public static Assimp.Vector3D ToAssimpVector(OpenTK.Mathematics.Vector3 v)
         => new(v.X, v.Y, v.Z);
 
     public static OpenTK.Mathematics.Matrix4 ToOpenTKMatrix(Assimp.Matrix4x4 m)

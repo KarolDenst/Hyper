@@ -48,7 +48,7 @@ internal static class ShaderFactory
 
         objectShader.SetVector3Array("lightColor", lightSources.Select(x => x.Color).ToArray());
         objectShader.SetVector4Array("lightPos", lightSources.Select(x =>
-            GeomPorting.EucToCurved((x.Position - camera.ReferencePointPosition) * globalScale, camera.Curve)).ToArray());
+            GeomPorting.EucToCurved(GeomPorting.CreateTranslationTarget(x.Position, camera.ReferencePointPosition, camera.Curve) * globalScale, camera.Curve)).ToArray());
     }
 
     public static void SetUpLightingShaderParams(Shader lightSourceShader, Camera camera)
@@ -71,6 +71,6 @@ internal static class ShaderFactory
         characterShader.SetVector4("viewPos", GeomPorting.EucToCurved(camera.ViewPosition, camera.Curve));
         characterShader.SetVector3Array("lightColor", lightSources.Select(x => x.Color).ToArray());
         characterShader.SetVector4Array("lightPos", lightSources.Select(x =>
-            GeomPorting.EucToCurved((x.Position - camera.ReferencePointPosition) * globalScale, camera.Curve)).ToArray());
+            GeomPorting.EucToCurved(GeomPorting.CreateTranslationTarget(x.Position, camera.ReferencePointPosition, camera.Curve) * globalScale, camera.Curve)).ToArray());
     }
 }
