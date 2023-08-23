@@ -39,22 +39,22 @@ internal static class ShaderFactory
     public static void SetUpObjectShaderParams(Shader objectShader, Camera camera, List<LightSource> lightSources, float globalScale)
     {
         objectShader.Use();
-        objectShader.SetFloat("curv", camera.Curve);
+        objectShader.SetFloat("curv", WorldProperties.Instance.Curve);
         objectShader.SetFloat("anti", 1.0f);
         objectShader.SetMatrix4("view", camera.GetViewMatrix());
         objectShader.SetMatrix4("projection", camera.GetProjectionMatrix());
         objectShader.SetInt("numLights", lightSources.Count);
-        objectShader.SetVector4("viewPos", GeomPorting.EucToCurved(camera.ViewPosition, camera.Curve));
+        objectShader.SetVector4("viewPos", GeomPorting.EucToCurved(camera.ViewPosition, WorldProperties.Instance.Curve));
 
         objectShader.SetVector3Array("lightColor", lightSources.Select(x => x.Color).ToArray());
         objectShader.SetVector4Array("lightPos", lightSources.Select(x =>
-            GeomPorting.EucToCurved(GeomPorting.CreateTranslationTarget(x.Position, camera.ReferencePointPosition, camera.Curve) * globalScale, camera.Curve)).ToArray());
+            GeomPorting.EucToCurved(GeomPorting.CreateTranslationTarget(x.Position, camera.ReferencePointPosition, WorldProperties.Instance.Curve) * globalScale, WorldProperties.Instance.Curve)).ToArray());
     }
 
     public static void SetUpLightingShaderParams(Shader lightSourceShader, Camera camera)
     {
         lightSourceShader.Use();
-        lightSourceShader.SetFloat("curv", camera.Curve);
+        lightSourceShader.SetFloat("curv", WorldProperties.Instance.Curve);
         lightSourceShader.SetFloat("anti", 1.0f);
         lightSourceShader.SetMatrix4("view", camera.GetViewMatrix());
         lightSourceShader.SetMatrix4("projection", camera.GetProjectionMatrix());
@@ -63,14 +63,14 @@ internal static class ShaderFactory
     public static void SetUpCharacterShaderParams(Shader characterShader, Camera camera, List<LightSource> lightSources, float globalScale)
     {
         characterShader.Use();
-        characterShader.SetFloat("curv", camera.Curve);
+        characterShader.SetFloat("curv", WorldProperties.Instance.Curve);
         characterShader.SetMatrix4("view", camera.GetViewMatrix());
         characterShader.SetMatrix4("projection", camera.GetProjectionMatrix());
 
         characterShader.SetInt("numLights", lightSources.Count);
-        characterShader.SetVector4("viewPos", GeomPorting.EucToCurved(camera.ViewPosition, camera.Curve));
+        characterShader.SetVector4("viewPos", GeomPorting.EucToCurved(camera.ViewPosition, WorldProperties.Instance.Curve));
         characterShader.SetVector3Array("lightColor", lightSources.Select(x => x.Color).ToArray());
         characterShader.SetVector4Array("lightPos", lightSources.Select(x =>
-            GeomPorting.EucToCurved(GeomPorting.CreateTranslationTarget(x.Position, camera.ReferencePointPosition, camera.Curve) * globalScale, camera.Curve)).ToArray());
+            GeomPorting.EucToCurved(GeomPorting.CreateTranslationTarget(x.Position, camera.ReferencePointPosition, WorldProperties.Instance.Curve) * globalScale, WorldProperties.Instance.Curve)).ToArray());
     }
 }

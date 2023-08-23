@@ -32,6 +32,30 @@ internal class MeshGenerator
         return vertices.ToArray();
     }
 
+    public Vertex[] GetSphericalMesh(Vector3i position)
+    {
+        var vertices = new List<Vertex>();
+        float cutoffRadius = (MathF.PI / 2 / WorldProperties.Instance.Scale);
+        for (int x = 0; x < _scalarField.GetLength(0) - 1; x++)
+        {
+            for (int y = 0; y < _scalarField.GetLength(1) - 1; y++)
+            {
+                for (int z = 0; z < _scalarField.GetLength(2) - 1; z++)
+                {
+                    var xAbs = position.X + x;
+                    var yAbs = position.Y + y;
+                    var zAbs = position.Z + z;
+                    if (xAbs * xAbs + yAbs * yAbs + zAbs * zAbs > cutoffRadius * cutoffRadius)
+                        continue;
+
+                    vertices.AddRange(GetTriangles(x, y, z));
+                }
+            }
+        }
+
+        return vertices.ToArray();
+    }
+
     private List<Vertex> GetTriangles(int x, int y, int z)
     {
         var vertices = new List<Vertex>();

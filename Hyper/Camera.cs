@@ -10,8 +10,6 @@ namespace Hyper;
 
 internal class Camera : Commandable, IInputSubscriber
 {
-    public float Curve { get; set; } = 0f;
-
     public Vector3 ReferencePointPosition { get; set; } = Vector3.Zero;
 
     public Vector3 Front { get; private set; } = -Vector3.UnitZ;
@@ -42,7 +40,7 @@ internal class Camera : Commandable, IInputSubscriber
 
     private readonly float _scale;
 
-    public Vector3 ViewPosition { get => Curve >= 0 ? ReferencePointPosition * _scale : _fixedViewPosition; }
+    public Vector3 ViewPosition { get => WorldProperties.Instance.Curve >= 0 ? ReferencePointPosition * _scale : _fixedViewPosition; }
 
     private readonly Vector3 _fixedViewPosition;
 
@@ -92,17 +90,17 @@ internal class Camera : Commandable, IInputSubscriber
 
     public Matrix4 GetViewMatrix()
     {
-        return Matrices.ViewMatrix(ViewPosition, Front, Up, Curve);
+        return Matrices.ViewMatrix(ViewPosition, Front, Up, WorldProperties.Instance.Curve);
     }
 
     public Matrix4 GetProjectionMatrix()
     {
-        return Matrices.ProjectionMatrix(_fov, _near, _far, AspectRatio, Curve);
+        return Matrices.ProjectionMatrix(_fov, _near, _far, AspectRatio, WorldProperties.Instance.Curve);
     }
 
     public Matrix4 TranslateMatrix(Vector4 to)
     {
-        return Matrices.TranslationMatrix(to, Curve);
+        return Matrices.TranslationMatrix(to, WorldProperties.Instance.Curve);
     }
 
     private void UpdateVectors()
@@ -148,13 +146,13 @@ internal class Camera : Commandable, IInputSubscriber
                 break;
             case "curve":
                 if (args[1] == "h")
-                    Curve = -1f;
+                    WorldProperties.Instance.Curve = -1f;
                 else if (args[1] == "s")
-                    Curve = 1f;
+                    WorldProperties.Instance.Curve = 1f;
                 else if (args[1] == "e")
-                    Curve = 0f;
+                    WorldProperties.Instance.Curve = 0f;
                 else
-                    Curve = float.Parse(args[1]);
+                    WorldProperties.Instance.Curve = float.Parse(args[1]);
                 break;
             case "speed":
                 _cameraSpeed = float.Parse(args[1]);
@@ -196,11 +194,12 @@ internal class Camera : Commandable, IInputSubscriber
             Keys.D8, Keys.D9, Keys.D0, Keys.Down, Keys.Up, Keys.Tab
         });
 
-        context.RegisterKeyDownCallback(Keys.D8, () => Curve = 0f);
-        context.RegisterKeyDownCallback(Keys.D9, () => Curve = 1f);
-        context.RegisterKeyDownCallback(Keys.D0, () => Curve = -1f);
-        context.RegisterKeyHeldCallback(Keys.Down, (e) => Curve -= 1f * (float)e.Time);
-        context.RegisterKeyHeldCallback(Keys.Up, (e) => Curve += 1f * (float)e.Time);
+        // TODO move to WorldProperties class
+        context.RegisterKeyDownCallback(Keys.D8, () => WorldProperties.Instance.Curve = 0f);
+        context.RegisterKeyDownCallback(Keys.D9, () => WorldProperties.Instance.Curve = 1f);
+        context.RegisterKeyDownCallback(Keys.D0, () => WorldProperties.Instance.Curve = -2f);
+        context.RegisterKeyHeldCallback(Keys.Down, (e) => WorldProperties.Instance.Curve -= 1f * (float)e.Time);
+        context.RegisterKeyHeldCallback(Keys.Up, (e) => WorldProperties.Instance.Curve += 1f * (float)e.Time);
         context.RegisterKeyDownCallback(Keys.Tab, () => FirstPerson = !FirstPerson);
 
         context.RegisterMouseMoveCallback((e) => Turn(e.Position));

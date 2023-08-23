@@ -18,7 +18,9 @@ namespace Hyper;
 
 internal class Scene : IInputSubscriber
 {
-    private readonly List<Chunk> _chunks;
+    private readonly List<Chunk> _chunks1;
+
+    private readonly List<Chunk> _chunks2;
 
     private readonly List<LightSource> _lightSources;
 
@@ -29,8 +31,6 @@ internal class Scene : IInputSubscriber
     private readonly CharacterControllers _characterControllers;
 
     public HudManager Hud { get; private set; }
-
-    private readonly float _scale = 0.05f; // spherical must fit in
 
     private readonly Shader _objectShader;
 
@@ -59,17 +59,22 @@ internal class Scene : IInputSubscriber
         _scalarFieldGenerator = new ScalarFieldGenerator(1);
         ChunkFactory chunkFactory = new ChunkFactory(_scalarFieldGenerator);
 
-        _chunks = GetChunks(chunkFactory);
+        _chunks1 = GetChunks(chunkFactory);
+        _chunks2 = GetChunks(chunkFactory);
+
         _lightSources = GetLightSources(_chunksPerSide);
-        _projectiles = new List<Projectile>();
+        _projectiles = new List<Projectile>(); ;
 
         Hud = new HudManager(aspectRatio);
 
         _objectShader = ShaderFactory.CreateObjectShader();
+        //_objectShader.SetVector3("upperSphereCenter", new Vector3(upperSphereCenter.X, upperSphereCenter.Y, upperSphereCenter.Z) * WorldProperties.Instance.Scale);
+        // _objectShader.SetVector3("lowerSphereCenter", new Vector3(lowerSphereCenter.X, lowerSphereCenter.Y, lowerSphereCenter.Z) * WorldProperties.Instance.Scale);
+        //_objectShader.SetFloat("avgElevation", _scalarFieldGenerator.AvgElevation * WorldProperties.Instance.Scale);
         _lightSourceShader = ShaderFactory.CreateLightSourceShader();
-        _characterShader = ShaderFactory.CreateModelShader();
+        _characterShader = ShaderFactory.CreateModelShader(); ;
 
-        RegisterCallbacks();
+        RegisterCallbacks(); ;
 
         var bufferPool = new BufferPool();
 
@@ -81,10 +86,10 @@ internal class Scene : IInputSubscriber
             new PoseIntegratorCallbacks(new System.Numerics.Vector3(0, -10, 0)),
             new SolveDescription(6, 1), bufferPool);
 
-        var characterInitialPosition = new Vector3(0, _scalarFieldGenerator.AvgElevation + 8, 15);
+        var characterInitialPosition = new Vector3(0, _scalarFieldGenerator.AvgElevation + 8, 0);
         _player = new Player(CreatePhysicalHumanoid(characterInitialPosition));
 
-        int botsCount = 3;
+        int botsCount = 1;
         _bots = Enumerable.Range(0, botsCount) // initialize them however you like
             .Select(i => new Vector3(i * 4 - botsCount * 2, _scalarFieldGenerator.AvgElevation + 5, i * 4 - botsCount * 2))
             .Select(pos => new Humanoid(CreatePhysicalHumanoid(pos)))
@@ -95,7 +100,11 @@ internal class Scene : IInputSubscriber
 
         Camera = GetCamera(aspectRatio);
 
-        foreach (var chunk in _chunks)
+        foreach (var chunk in _chunks1)
+        {
+            chunk.CreateCollisionSurface(_simulationManager.Simulation, _simulationManager.BufferPool);
+        }
+        foreach (var chunk in _chunks2)
         {
             chunk.CreateCollisionSurface(_simulationManager.Simulation, _simulationManager.BufferPool);
         }
@@ -103,39 +112,47 @@ internal class Scene : IInputSubscriber
 
     public void Render()
     {
-        ShaderFactory.SetUpObjectShaderParams(_objectShader, Camera, _lightSources, _scale);
+        ShaderFactory.SetUpObjectShaderParams(_objectShader, Camera, _lightSources, WorldProperties.Instance.Scale);
 
-        foreach (var chunk in _chunks)
+
+        _objectShader.SetInt("sphere", 1);
+        foreach (var chunk in _chunks2)
         {
-            chunk.Render(_objectShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
+            chunk.Render(_objectShader, WorldProperties.Instance.Scale, Camera.ReferencePointPosition, WorldProperties.Instance.Curve);
+        }
+
+        _objectShader.SetInt("sphere", 0); ;
+        foreach (var chunk in _chunks1)
+        {
+            chunk.Render(_objectShader, WorldProperties.Instance.Scale, Camera.ReferencePointPosition, WorldProperties.Instance.Curve);
         }
 
         foreach (var projectile in _projectiles)
         {
-            projectile.Mesh.Render(_objectShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
+            projectile.Mesh.Render(_objectShader, WorldProperties.Instance.Scale, Camera.ReferencePointPosition, WorldProperties.Instance.Curve);
         }
 
-        _simpleCar.Mesh.Render(_objectShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
+        _simpleCar.Mesh.Render(_objectShader, WorldProperties.Instance.Scale, Camera.ReferencePointPosition, WorldProperties.Instance.Curve);
 
         ShaderFactory.SetUpLightingShaderParams(_lightSourceShader, Camera);
 
         foreach (var light in _lightSources)
         {
-            light.Render(_lightSourceShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
+            light.Render(_lightSourceShader, WorldProperties.Instance.Scale, Camera.ReferencePointPosition, WorldProperties.Instance.Curve);
         }
 
-        ShaderFactory.SetUpCharacterShaderParams(_characterShader, Camera, _lightSources, _scale);
+        ShaderFactory.SetUpCharacterShaderParams(_characterShader, Camera, _lightSources, WorldProperties.Instance.Scale);
 
 #if BOUNDING_BOXES
-        _player.PhysicalCharacter.RenderBoundingBox(_objectShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
+        _player.PhysicalCharacter.RenderBoundingBox(_objectShader, WorldProperties.Instance.Scale, Camera.ReferencePointPosition, WorldProperties.Instance.Curve);
 #endif
-        _player.Render(_characterShader, _scale, Camera.ReferencePointPosition, Camera.FirstPerson, Camera.Curve);
+        _player.Render(_characterShader, WorldProperties.Instance.Scale, Camera.ReferencePointPosition, Camera.FirstPerson, WorldProperties.Instance.Curve);
 
         foreach (var bot in _bots)
         {
-            bot.Render(_characterShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
+            bot.Render(_characterShader, WorldProperties.Instance.Scale, Camera.ReferencePointPosition, WorldProperties.Instance.Curve);
 #if BOUNDING_BOXES
-            bot.PhysicalCharacter.RenderBoundingBox(_objectShader, _scale, Camera.ReferencePointPosition, Camera.Curve);
+            bot.PhysicalCharacter.RenderBoundingBox(_objectShader, WorldProperties.Instance.Scale, Camera.ReferencePointPosition, WorldProperties.Instance.Curve);
 #endif
         }
 
@@ -185,7 +202,7 @@ internal class Scene : IInputSubscriber
         {
             for (int y = -chunksPerSide / 2; y < chunksPerSide / 2; y++)
             {
-                if (x % 2 == 0 && y % 2 == 0)
+                if (x != 0 || y != 0)
                     continue;
 
                 int offset = Chunk.Size - 1;
@@ -199,7 +216,7 @@ internal class Scene : IInputSubscriber
 
     private Camera GetCamera(float aspectRatio)
     {
-        var camera = new Camera(aspectRatio, 0.01f, 100f, _scale)
+        var camera = new Camera(aspectRatio, 0.01f, 100f, WorldProperties.Instance.Scale)
         {
             ReferencePointPosition = (5f + _scalarFieldGenerator.AvgElevation) * Vector3.UnitY
         };
@@ -258,7 +275,7 @@ internal class Scene : IInputSubscriber
 
         context.RegisterMouseButtonHeldCallback(MouseButton.Left, (e) =>
         {
-            foreach (var chunk in _chunks)
+            foreach (var chunk in _chunks1)
             {
                 if (chunk.Mine(Conversions.ToOpenTKVector(_player.GetCharacterRay(Camera.Front, 1)), 3, (float)e.Time))
                 {
@@ -270,7 +287,7 @@ internal class Scene : IInputSubscriber
 
         context.RegisterMouseButtonHeldCallback(MouseButton.Right, (e) =>
         {
-            foreach (var chunk in _chunks)
+            foreach (var chunk in _chunks1)
             {
                 if (chunk.Build(Conversions.ToOpenTKVector(_player.GetCharacterRay(Camera.Front, 3)), 3, (float)e.Time))
                 {
