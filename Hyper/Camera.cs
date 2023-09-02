@@ -44,6 +44,11 @@ internal class Camera : Commandable, IInputSubscriber
 
     private readonly Vector3 _fixedViewPosition;
 
+    public int Sphere = 0;
+
+    public void FlipFront()
+        => Front = -Front;
+
     public Camera(float aspectRatio, float near, float far, float scale)
     {
         AspectRatio = aspectRatio;
@@ -105,7 +110,8 @@ internal class Camera : Commandable, IInputSubscriber
 
     private void UpdateVectors()
     {
-        Front = new Vector3(MathF.Cos(_pitch) * MathF.Cos(_yaw), MathF.Sin(_pitch), MathF.Cos(_pitch) * MathF.Sin(_yaw));
+        float adjustedYaw = Sphere == 0 ? _yaw : _yaw + MathF.PI;
+        Front = new Vector3(MathF.Cos(_pitch) * MathF.Cos(adjustedYaw), MathF.Sin(_pitch), MathF.Cos(_pitch) * MathF.Sin(adjustedYaw));
 
         Front = Vector3.Normalize(Front);
 
@@ -135,6 +141,13 @@ internal class Camera : Commandable, IInputSubscriber
     {
         ReferencePointPosition = Conversions.ToOpenTKVector(player.PhysicalCharacter.Pose.Position)
             + (FirstPerson ? Vector3.Zero : player.GetThirdPersonCameraOffset(this));
+    }
+
+    public void UpdateWithCharacterSpherical(Player player, Vector3 sphereCenter)
+    {
+        ReferencePointPosition = Conversions.ToOpenTKVector(player.PhysicalCharacter.Pose.Position)
+            + (FirstPerson ? Vector3.Zero : player.GetThirdPersonCameraOffset(this))
+            - sphereCenter;
     }
 
     protected override void SetCommand(string[] args)

@@ -36,12 +36,15 @@ internal static class ShaderFactory
         return new Shader(shader);
     }
 
-    public static void SetUpObjectShaderParams(Shader objectShader, Camera camera, List<LightSource> lightSources, float globalScale)
+    public static void SetUpObjectShaderParams(Shader objectShader, Camera camera, List<LightSource> lightSources, float globalScale, int sphere)
     {
         objectShader.Use();
         objectShader.SetFloat("curv", WorldProperties.Instance.Curve);
         objectShader.SetFloat("anti", 1.0f);
+        //if (sphere == 0)
         objectShader.SetMatrix4("view", camera.GetViewMatrix());
+        //else
+        //    objectShader.SetMatrix4("view", camera.GetViewMatrix2());
         objectShader.SetMatrix4("projection", camera.GetProjectionMatrix());
         objectShader.SetInt("numLights", lightSources.Count);
         objectShader.SetVector4("viewPos", GeomPorting.EucToCurved(camera.ViewPosition, WorldProperties.Instance.Curve));
@@ -60,7 +63,7 @@ internal static class ShaderFactory
         lightSourceShader.SetMatrix4("projection", camera.GetProjectionMatrix());
     }
 
-    public static void SetUpCharacterShaderParams(Shader characterShader, Camera camera, List<LightSource> lightSources, float globalScale)
+    public static void SetUpCharacterShaderParams(Shader characterShader, Camera camera, List<LightSource> lightSources, float globalScale, int sphere = 0)
     {
         characterShader.Use();
         characterShader.SetFloat("curv", WorldProperties.Instance.Curve);

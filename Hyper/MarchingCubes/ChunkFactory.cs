@@ -12,13 +12,13 @@ internal class ChunkFactory
         _scalarFieldGenerator = scalarFieldGenerator;
     }
 
-    public Chunk GenerateChunk(Vector3i position)
+    public Chunk GenerateChunk(Vector3i position, Vector3i sphereCenter)
     {
         var scalarField = _scalarFieldGenerator.Generate(Chunk.Size, position);
         var meshGenerator = new MeshGenerator(scalarField);
         //Vertex[] data = meshGenerator.GetMesh();
-        Vertex[] data = meshGenerator.GetSphericalMesh(position - new Vector3i(0, (int)_scalarFieldGenerator.AvgElevation, 0));
+        Vertex[] data = meshGenerator.GetSphericalMesh(position - new Vector3i(0, (int)_scalarFieldGenerator.AvgElevation, 0), sphereCenter);
 
-        return new Chunk(data, position, scalarField);
+        return new Chunk(data, position, scalarField, sphereCenter);
     }
 }

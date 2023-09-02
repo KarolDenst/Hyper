@@ -123,6 +123,13 @@ internal class PhysicalCharacter
         Pose = body.Pose;
     }
 
+    public void ForcePoseChange(Simulation simulation, RigidPose pose)
+    {
+        var body = new BodyReference(_bodyHandle, simulation.Bodies);
+
+        body.Pose = pose;
+    }
+
     /// <summary>
     /// Removes the character's body from the simulation and the character from the associated characters set.
     /// </summary>

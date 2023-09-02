@@ -25,10 +25,13 @@ internal class Chunk : Mesh
 
     private TypedIndex _shape;
 
-    public Chunk(Vertex[] vertices, Vector3i position, Voxel[,,] voxels) : base(vertices, position)
+    private Vector3i _sphereCenter;
+
+    public Chunk(Vertex[] vertices, Vector3i position, Voxel[,,] voxels, Vector3i sphereCenter) : base(vertices, position)
     {
         _voxels = voxels;
         Position = position;
+        _sphereCenter = sphereCenter;
     }
 
     /// <summary>
@@ -134,7 +137,7 @@ internal class Chunk : Mesh
     {
         var renderer = new MeshGenerator(_voxels);
         //Vertices = renderer.GetMesh();
-        Vertices = renderer.GetSphericalMesh(Position);
+        Vertices = renderer.GetSphericalMesh(Position, _sphereCenter);
         NumberOfVertices = Vertices.Length;
 
         GL.BindVertexArray(VaoId);

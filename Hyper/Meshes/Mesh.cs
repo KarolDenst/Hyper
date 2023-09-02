@@ -13,6 +13,8 @@ internal class Mesh : IDisposable
 
     public RigidPose RigidPose { get; set; }
 
+    public Vector3 SphereCenter { get; set; } = Vector3.Zero;
+
     public Vector3 Scaling { get; set; }
 
     protected int VaoId;
@@ -44,7 +46,7 @@ internal class Mesh : IDisposable
     public virtual void RenderFullDescription(Shader shader, float scale, Vector3 cameraPosition, float curve)
     {
         var position = Conversions.ToOpenTKVector(RigidPose.Position);
-        var translation = Matrix4.CreateTranslation(GeomPorting.CreateTranslationTarget(position, cameraPosition, curve) * scale);
+        var translation = Matrix4.CreateTranslation(GeomPorting.CreateTranslationTarget(position/* - SphereCenter*/, cameraPosition, curve) * scale);
         var scaleMatrix = Matrix4.CreateScale(scale);
         var rotation = Conversions.ToOpenTKMatrix(System.Numerics.Matrix4x4.CreateFromQuaternion(RigidPose.Orientation));
 

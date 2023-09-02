@@ -20,12 +20,25 @@ uniform mat4 model;
 uniform mat4 normalRotation;
 uniform mat4 boneTransforms[MAX_BONES];
 
+uniform vec3 lowerSphereCenter;
+//uniform int characterSphere;
+
 vec4 port(vec4 ePoint)
 {
 	vec3 p = ePoint.xyz;
 	float d = length(p);
 	if(d < 0.0001 || curv == 0) return ePoint;
-	if(curv > 0) return vec4(p / d * sin(d), cos(d));
+	if(curv > 0) 
+	{
+		//if(characterSphere == 0)
+			return vec4(p / d * sin(d), cos(d));
+		/*else
+		{
+			p = p - lowerSphereCenter;
+			d = length(p);
+			return vec4(p / d * sin(d), cos(d));
+		}*/
+	}
 	return vec4(p / d * sinh(d), cosh(d));
 }
 

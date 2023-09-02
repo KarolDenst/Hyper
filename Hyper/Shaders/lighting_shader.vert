@@ -12,6 +12,8 @@ uniform mat4 projection;
 uniform float curv;
 uniform float anti;
 uniform int sphere; // 0 for upper, 1 for lower
+uniform vec3 lowerSphereCenter;
+uniform int characterSphere;
 
 out vec4 Normal;
 out vec4 FragPos; // in world space coordinates
@@ -24,15 +26,33 @@ vec4 port(vec4 ePoint)
     if(d < 0.0001 || curv == 0) return ePoint;
     if(curv > 0)
     {
-        if(sphere == 0)
+        if(characterSphere == 0)
         {
-            d = length(p);   
-            return vec4(p / d * sin(d), cos(d));
+            if(sphere == 0)
+            {
+                d = length(p);
+                return vec4(p / d * sin(d), cos(d));
+            }
+            if(sphere == 1)
+            {
+                p = p - lowerSphereCenter;
+                d = length(p);
+                return vec4(p / d * sin(d), -cos(d));
+            }
         }
-        if(sphere == 1)
+        else
         {
-            d = length(p);
-            return vec4(p/ d * sin(d), -cos(d));
+            if(sphere == 0)
+            {
+                d = length(p);   
+                return vec4(p / d * sin(d), -cos(d));
+            }
+            if(sphere == 1)
+            {
+                p = p - lowerSphereCenter;
+                d = length(p);
+                return vec4(p / d * sin(d), cos(d));
+            }
         }
     }
     return vec4(p / d * sinh(d), cosh(d));
