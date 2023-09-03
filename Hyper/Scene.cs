@@ -74,12 +74,9 @@ internal class Scene : IInputSubscriber
         Hud = new HudManager(aspectRatio);
 
         _objectShader = ShaderFactory.CreateObjectShader();
-        //_objectShader.SetVector3("upperSphereCenter", new Vector3(upperSphereCenter.X, upperSphereCenter.Y, upperSphereCenter.Z) * WorldProperties.Instance.Scale);
         _objectShader.SetVector3("lowerSphereCenter", new Vector3(_chunk2Center.X, _chunk2Center.Y, _chunk2Center.Z) * WorldProperties.Instance.Scale);
-        //_objectShader.SetFloat("avgElevation", _scalarFieldGenerator.AvgElevation * WorldProperties.Instance.Scale);
         _lightSourceShader = ShaderFactory.CreateLightSourceShader();
         _characterShader = ShaderFactory.CreateModelShader();
-        //_characterShader.SetVector3("lowerSphereCenter", new Vector3(_chunk2Center.X, _chunk2Center.Y, _chunk2Center.Z) * WorldProperties.Instance.Scale);
 
         RegisterCallbacks();
 
@@ -150,8 +147,6 @@ internal class Scene : IInputSubscriber
 
 
         ShaderFactory.SetUpCharacterShaderParams(_characterShader, Camera, _lightSources, WorldProperties.Instance.Scale);
-
-        //_characterShader.SetInt("characterSphere", _currentSphere);
 
 #if BOUNDING_BOXES
         _objectShader.SetInt("sphere", _currentSphere);
@@ -296,12 +291,21 @@ internal class Scene : IInputSubscriber
             }
             else
             {
-                /*if (Vector3.Distance(Conversions.ToOpenTKVector(_player.PhysicalCharacter.Pose.Position), _chunk2Center) > (MathF.PI / 2) / WorldProperties.Instance.Scale)
+                Vector3 playerPos = Conversions.ToOpenTKVector(_player.PhysicalCharacter.Pose.Position);
+                Vector3 normalizedPlayerPos = new Vector3(playerPos.X, 0, playerPos.Z);
+                System.Numerics.Quaternion orientation = _player.PhysicalCharacter.Pose.Orientation;
+                if (Vector3.Distance(normalizedPlayerPos, _chunk2Center) > 0.8 * ((MathF.PI / 2) / WorldProperties.Instance.Scale))
                 {
-                    _player.PhysicalCharacter.ForcePoseChange(new RigidPose(Conversions.ToNumericsVector(
-                        ToFloatVector(_chunk1Center) *//*+ 0.5f * (Conversions.ToOpenTKVector(_player.PhysicalCharacter.Pose.Position) - ToFloatVector(_chunk2Center))*//*)));
-                    //currentSphere = 0;
-                }*/
+                    Vector3 normalizedAfterTeleport = ToFloatVector(_chunk1Center) + 0.75f * (normalizedPlayerPos - ToFloatVector(_chunk2Center));
+                    Vector3 realAfterTeleport = new Vector3(normalizedAfterTeleport.X, playerPos.Y * 1.2f, normalizedAfterTeleport.Z); // TODO adjust the height for the target position
+                    System.Numerics.Quaternion flip = QuaternionEx.CreateFromAxisAngle(System.Numerics.Vector3.UnitY, MathF.PI);
+                    _player.PhysicalCharacter.ForcePoseChange(_simulationManager.Simulation, new RigidPose(Conversions.ToNumericsVector(realAfterTeleport), orientation * flip));
+                    _currentSphere = 0;
+                    _objectShader.SetInt("characterSphere", 0);
+                    Camera.FlipFront();
+                    Camera.Sphere = 0;
+                    _player.PhysicalCharacter.BoundingBoxMesh.SphereCenter = _chunk1Center;
+                }
             }
 
 
