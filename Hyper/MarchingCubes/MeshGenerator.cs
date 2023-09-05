@@ -45,7 +45,7 @@ internal class MeshGenerator
                     var xAbs = position.X + x - sphereCenter.X;
                     var yAbs = position.Y + y - sphereCenter.Y;
                     var zAbs = position.Z + z - sphereCenter.Z;
-                    if (xAbs * xAbs + yAbs * yAbs + zAbs * zAbs > cutoffRadius * cutoffRadius)
+                    if (xAbs * xAbs + yAbs * yAbs + zAbs * zAbs >= cutoffRadius * cutoffRadius)
                         continue;
 
                     vertices.AddRange(GetTriangles(x, y, z));

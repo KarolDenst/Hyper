@@ -7,6 +7,7 @@ using Hyper.Collisions.Bepu;
 using Hyper.GameEntities;
 using Hyper.HUD;
 using Hyper.MarchingCubes;
+using Hyper.MarchingCubes.Voxels;
 using Hyper.Meshes;
 using Hyper.Shaders;
 using Hyper.TypingUtils;
@@ -65,8 +66,9 @@ internal class Scene : IInputSubscriber
         _scalarFieldGenerator = new ScalarFieldGenerator(1);
         ChunkFactory chunkFactory = new ChunkFactory(_scalarFieldGenerator);
 
-        _chunks1 = GetChunks(chunkFactory, _chunk1Center);
-        _chunks2 = GetChunks(chunkFactory, _chunk2Center);
+        //_chunks1 = GetChunks(chunkFactory, _chunk1Center);
+        //_chunks2 = GetChunks(chunkFactory, _chunk2Center);
+        (_chunks1, _chunks2) = CreateSpheres(_chunksPerSide, _chunk1Center, _chunk2Center);
 
         _lightSources = GetLightSources(_chunksPerSide);
         _projectiles = new List<Projectile>();
@@ -199,6 +201,165 @@ internal class Scene : IInputSubscriber
         return chunks;
     }
 
+    private (List<Chunk>, List<Chunk>) CreateSpheres(int chunksPerSide, Vector3i sphere1Center, Vector3i sphere2Center)
+    {
+        if (chunksPerSide % 2 != 0)
+            throw new ArgumentException("# of chunks/side must be even");
+
+        List<Chunk> sphere1 = new List<Chunk>();
+        List<Chunk> sphere2 = new List<Chunk>();
+        for (int x = -chunksPerSide / 2; x < chunksPerSide / 2; x++)
+        {
+            for (int y = -chunksPerSide / 2; y < chunksPerSide / 2; y++)
+            {
+                int offset = Chunk.Size - 1;
+
+                var sf1Position = new Vector3i(offset * x, 0, offset * y) + sphere1Center;
+                var sf2Position = new Vector3i(offset * x, 0, offset * y) + sphere2Center;
+
+                var scalarField1 = _scalarFieldGenerator.Generate(Chunk.Size, sf1Position);
+                var scalarField2 = _scalarFieldGenerator.Generate(Chunk.Size, sf2Position);
+
+                var (averagedSf1, averagedSf2) = AverageScalarFields(scalarField1, sf1Position, sphere1Center, scalarField2, sf2Position, sphere2Center);
+
+                var meshGenerator1 = new MeshGenerator(averagedSf1);
+                Vertex[] data1 = meshGenerator1.GetSphericalMesh(sf1Position - new Vector3i(0, (int)_scalarFieldGenerator.AvgElevation, 0), sphere1Center);
+                sphere1.Add(new Chunk(data1, sf1Position, averagedSf1, sphere1Center));
+                var meshGenerator2 = new MeshGenerator(averagedSf2);
+                Vertex[] data2 = meshGenerator2.GetSphericalMesh(sf2Position - new Vector3i(0, (int)_scalarFieldGenerator.AvgElevation, 0), sphere2Center);
+                sphere2.Add(new Chunk(data2, sf2Position, averagedSf2, sphere2Center));
+            }
+        }
+
+        return (sphere1, sphere2);
+    }
+
+    private (Voxel[,,], Voxel[,,]) AverageScalarFields(Voxel[,,] sf1, Vector3i sf1Position, Vector3i sphere1Center, Voxel[,,] sf2, Vector3i sf2Position, Vector3i sphere2Center)
+    {
+        Voxel[,,] averagedSf1 = new Voxel[sf1.GetLength(0), sf2.GetLength(1), sf2.GetLength(2)];
+        Voxel[,,] averagedSf2 = new Voxel[sf1.GetLength(0), sf2.GetLength(1), sf2.GetLength(2)];
+        float radius = MathF.PI / 2 / WorldProperties.Instance.Scale;
+        float beta = .9f;
+        float a = .5f;
+        float b = beta * radius * a;
+
+        for (int x = 0; x < sf1.GetLength(0); x++)
+        {
+            for (int y = 0; y < sf1.GetLength(1); y++)
+            {
+                for (int z = 0; z < sf1.GetLength(2); z++)
+                {
+                    Vector3i p = new Vector3i(x, y, z) + sf1Position - sphere1Center;
+                    if (p.X <= 0 || p.Y <= 0 || p.Z <= 0)
+                    {
+                        averagedSf1[x, y, z].Value = sf1[x, y, z].Value;
+                        averagedSf2[x, y, z].Value = sf2[x, y, z].Value;
+                        continue;
+                    }
+                    averagedSf1[x, y, z].Value = sf1[x, y, z].Value * S2(p.EuclideanLength, a, b) + GetRimValue(p, radius, sf1, sf2) * S1(p.EuclideanLength, a, b);
+                    averagedSf2[x, y, z].Value = sf2[x, y, z].Value * S2(p.EuclideanLength, a, b) + GetRimValue(p, radius, sf1, sf2) * S1(p.EuclideanLength, a, b);
+                }
+            }
+        }
+
+        return Smoothen(averagedSf1, averagedSf2, sf1Position, sphere1Center);
+    }
+
+    private (Voxel[,,], Voxel[,,]) Smoothen(Voxel[,,] sf1, Voxel[,,] sf2, Vector3i sf1Position, Vector3i sphere1Center)
+    {
+        Voxel[,,] averagedSf1 = new Voxel[sf1.GetLength(0), sf2.GetLength(1), sf2.GetLength(2)];
+        Voxel[,,] averagedSf2 = new Voxel[sf1.GetLength(0), sf2.GetLength(1), sf2.GetLength(2)];
+        for (int x = 0; x < sf1.GetLength(0); x++)
+        {
+            for (int y = 0; y < sf1.GetLength(1); y++)
+            {
+                for (int z = 0; z < sf1.GetLength(2); z++)
+                {
+                    Vector3i p = new Vector3i(x, y, z) + sf1Position - sphere1Center;
+                    averagedSf1[x, y, z].Value = sf1[x, y, z].Value;
+                    averagedSf2[x, y, z].Value = sf2[x, y, z].Value;
+                    int includedValues = 1;
+                    if (p.X <= 0 || p.Y <= 0 || p.Z <= 0)
+                    {
+                        continue;
+                    }
+                    if (x + 1 < Chunk.Size)
+                    {
+                        averagedSf1[x, y, z].Value += sf1[x + 1, y, z].Value;
+                        averagedSf2[x, y, z].Value += sf1[x + 1, y, z].Value;
+                        includedValues++;
+                    }
+                    if (y + 1 < Chunk.Size)
+                    {
+                        averagedSf1[x, y, z].Value += sf1[x, y + 1, z].Value;
+                        averagedSf2[x, y, z].Value += sf1[x, y + 1, z].Value;
+                        includedValues++;
+                    }
+                    if (z + 1 < Chunk.Size)
+                    {
+                        averagedSf1[x, y, z].Value += sf1[x, y, z + 1].Value;
+                        averagedSf2[x, y, z].Value += sf1[x, y, z + 1].Value;
+                        includedValues++;
+                    }
+                    if (x + 1 < Chunk.Size && y + 1 < Chunk.Size)
+                    {
+                        averagedSf1[x, y, z].Value += sf1[x + 1, y + 1, z].Value;
+                        averagedSf2[x, y, z].Value += sf1[x + 1, y + 1, z].Value;
+                        includedValues++;
+                    }
+
+                    if (x + 1 < Chunk.Size && z + 1 < Chunk.Size)
+                    {
+                        averagedSf1[x, y, z].Value += sf1[x + 1, y, z + 1].Value;
+                        averagedSf2[x, y, z].Value += sf1[x + 1, y, z + 1].Value;
+                        includedValues++;
+                    }
+                    if (y + 1 < Chunk.Size && z + 1 < Chunk.Size)
+                    {
+                        averagedSf1[x, y, z].Value += sf1[x, y + 1, z + 1].Value;
+                        averagedSf2[x, y, z].Value += sf1[x, y + 1, z + 1].Value;
+                        includedValues++;
+                    }
+                    if (x + 1 < Chunk.Size && y + 1 < Chunk.Size && z + 1 < Chunk.Size)
+                    {
+                        averagedSf1[x, y, z].Value += sf1[x + 1, y + 1, z + 1].Value;
+                        averagedSf2[x, y, z].Value += sf1[x + 1, y + 1, z + 1].Value;
+                        includedValues++;
+                    }
+                    averagedSf2[x, y, z].Value /= includedValues;
+                    averagedSf1[x, y, z].Value /= includedValues;
+                }
+            }
+        }
+
+        return (averagedSf1, averagedSf2);
+    }
+
+    private static float GetRimValue(Vector3i p, float R, Voxel[,,] sf1, Voxel[,,] sf2)
+    {
+        float r = p.EuclideanLength;
+        Vector3 p1 = (R / r) * new Vector3(p);
+        int x = (int)(p1.X);
+        int y = (int)(p1.Y);
+        int z = (int)(p1.Z);
+        if (x < 0)
+            x += Chunk.Size;
+        if (y < 0)
+            y += Chunk.Size;
+        if (z < 0)
+            z += Chunk.Size;
+        int includedValues = 1;
+        float rimValue = (sf1[x, y, z].Value + sf2[x, y, z].Value) / 2f;
+
+        return rimValue / includedValues;
+    }
+
+    private static float S1(float x, float a, float b, float m = 0.5f)
+        => m * (MathF.Tanh(a * x - b) + 1);
+
+    private static float S2(float x, float a, float b, float m = 0.5f)
+        => m * (-MathF.Tanh(a * x - b) + 1);
+
     private List<LightSource> GetLightSources(int chunksPerSide)
     {
         if (chunksPerSide % 2 != 0)
@@ -276,10 +437,10 @@ internal class Scene : IInputSubscriber
                 Vector3 playerPos = Conversions.ToOpenTKVector(_player.PhysicalCharacter.Pose.Position);
                 Vector3 normalizedPlayerPos = new Vector3(playerPos.X, 0, playerPos.Z);
                 System.Numerics.Quaternion orientation = _player.PhysicalCharacter.Pose.Orientation;
-                if (Vector3.Distance(normalizedPlayerPos, _chunk1Center) > 0.8 * ((MathF.PI / 2) / WorldProperties.Instance.Scale))
+                if (Vector3.Distance(normalizedPlayerPos, _chunk1Center) > ((MathF.PI / 2) / WorldProperties.Instance.Scale))
                 {
-                    Vector3 normalizedAfterTeleport = ToFloatVector(_chunk2Center) + 0.75f * (normalizedPlayerPos - ToFloatVector(_chunk1Center));
-                    Vector3 realAfterTeleport = new Vector3(normalizedAfterTeleport.X, playerPos.Y * 1.2f, normalizedAfterTeleport.Z); // TODO adjust the height for the target position
+                    Vector3 normalizedAfterTeleport = ToFloatVector(_chunk2Center) + 0.8f * (normalizedPlayerPos - ToFloatVector(_chunk1Center));
+                    Vector3 realAfterTeleport = new Vector3(normalizedAfterTeleport.X, playerPos.Y * 1f, normalizedAfterTeleport.Z); // TODO adjust the height for the target position
                     System.Numerics.Quaternion flip = QuaternionEx.CreateFromAxisAngle(System.Numerics.Vector3.UnitY, MathF.PI);
                     _player.PhysicalCharacter.ForcePoseChange(_simulationManager.Simulation, new RigidPose(Conversions.ToNumericsVector(realAfterTeleport), orientation * flip));
                     _currentSphere = 1;
@@ -294,10 +455,10 @@ internal class Scene : IInputSubscriber
                 Vector3 playerPos = Conversions.ToOpenTKVector(_player.PhysicalCharacter.Pose.Position);
                 Vector3 normalizedPlayerPos = new Vector3(playerPos.X, 0, playerPos.Z);
                 System.Numerics.Quaternion orientation = _player.PhysicalCharacter.Pose.Orientation;
-                if (Vector3.Distance(normalizedPlayerPos, _chunk2Center) > 0.8 * ((MathF.PI / 2) / WorldProperties.Instance.Scale))
+                if (Vector3.Distance(normalizedPlayerPos, _chunk2Center) > ((MathF.PI / 2) / WorldProperties.Instance.Scale))
                 {
-                    Vector3 normalizedAfterTeleport = ToFloatVector(_chunk1Center) + 0.75f * (normalizedPlayerPos - ToFloatVector(_chunk2Center));
-                    Vector3 realAfterTeleport = new Vector3(normalizedAfterTeleport.X, playerPos.Y * 1.2f, normalizedAfterTeleport.Z); // TODO adjust the height for the target position
+                    Vector3 normalizedAfterTeleport = ToFloatVector(_chunk1Center) + 0.8f * (normalizedPlayerPos - ToFloatVector(_chunk2Center));
+                    Vector3 realAfterTeleport = new Vector3(normalizedAfterTeleport.X, playerPos.Y * 1f, normalizedAfterTeleport.Z); // TODO adjust the height for the target position
                     System.Numerics.Quaternion flip = QuaternionEx.CreateFromAxisAngle(System.Numerics.Vector3.UnitY, MathF.PI);
                     _player.PhysicalCharacter.ForcePoseChange(_simulationManager.Simulation, new RigidPose(Conversions.ToNumericsVector(realAfterTeleport), orientation * flip));
                     _currentSphere = 0;
