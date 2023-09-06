@@ -13,6 +13,8 @@ internal class PhysicalCharacter
 {
     public RigidPose Pose { get; private set; }
 
+    public BodyHandle BodyHandle { get => _bodyHandle; }
+
 #if BOUNDING_BOXES
     public Meshes.Mesh BoundingBoxMesh { get; private set; }
 #endif

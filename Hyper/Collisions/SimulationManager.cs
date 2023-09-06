@@ -20,12 +20,11 @@ internal class SimulationManager<TNarrowPhaseCallbacks, TPoseIntegratorCallbacks
 
     private bool _disposed = false;
 
-    public SimulationManager(TNarrowPhaseCallbacks narrowPhaseCallbacks, TPoseIntegratorCallbacks poseIntegratorCallbacks, SolveDescription solveDescription, BufferPool bufferPool)
+    public SimulationManager(TNarrowPhaseCallbacks narrowPhaseCallbacks, TPoseIntegratorCallbacks poseIntegratorCallbacks, SolveDescription solveDescription, BufferPool bufferPool, ThreadDispatcher threadDispatcher)
 
     {
         BufferPool = bufferPool;
-        int targetThreadCount = int.Max(1, Environment.ProcessorCount > 4 ? Environment.ProcessorCount - 2 : Environment.ProcessorCount - 1);
-        ThreadDispatcher = new ThreadDispatcher(targetThreadCount);
+        ThreadDispatcher = threadDispatcher;
         Simulation = Simulation.Create(BufferPool, narrowPhaseCallbacks, poseIntegratorCallbacks, solveDescription);
     }
 

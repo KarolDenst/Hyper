@@ -7,7 +7,7 @@ using Hyper.Meshes;
 namespace Hyper.Collisions;
 internal class Projectile
 {
-    public BodyHandle Body { get; private set; }
+    public BodyHandle BodyHandle { get; private set; }
     public bool IsDead { get; private set; }
     public ProjectileMesh Mesh { get; private set; }
 
@@ -40,9 +40,9 @@ internal class Projectile
         projectile._shape = simulation.Shapes.Add(projectileShape);
         var inertia = projectileShape.ComputeInertia(0.01f);
 
-        projectile.Body = simulation.Bodies.Add(BodyDescription.CreateDynamic(initialPose, initialVelocity, inertia, new CollidableDescription(projectile._shape, 0.5f), 0.01f));
-        ref var bodyProperties = ref properties.Allocate(projectile.Body);
-        bodyProperties = new SimulationProperties { Friction = 2f, Filter = new SubgroupCollisionFilter(projectile.Body.Value, 0) };
+        projectile.BodyHandle = simulation.Bodies.Add(BodyDescription.CreateDynamic(initialPose, initialVelocity, inertia, new CollidableDescription(projectile._shape, 0.5f), 0.01f));
+        ref var bodyProperties = ref properties.Allocate(projectile.BodyHandle);
+        bodyProperties = new SimulationProperties { Friction = 2f, Filter = new SubgroupCollisionFilter(projectile.BodyHandle.Value, 0) };
 
         return projectile;
     }
@@ -54,15 +54,17 @@ internal class Projectile
     /// <param name="simulation"></param>
     /// <param name="dt"></param>
     /// <param name="pool"></param>
-    public void Update(Simulation simulation, float dt, BufferPool pool)
+    public void Update(Simulation simulation, float dt, BufferPool pool, Dictionary<BodyHandle, Projectile> bodyHandles, ContactEvents contactEvents)
     {
-        var body = new BodyReference(Body, simulation.Bodies);
+        var body = new BodyReference(BodyHandle, simulation.Bodies);
         Mesh.Update(body.Pose);
 
         _lifeTime -= dt;
         if (!_disposed && _lifeTime < 0)
         {
-            simulation.Bodies.Remove(Body);
+            bodyHandles.Remove(BodyHandle);
+            contactEvents.Unregister(BodyHandle);
+            simulation.Bodies.Remove(BodyHandle);
             simulation.Shapes.RemoveAndDispose(_shape, pool);
 
             _disposed = true;

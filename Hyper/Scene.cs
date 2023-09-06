@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using BepuPhysics;
+using BepuUtilities;
 using BepuUtilities.Memory;
 using Hyper.Collisions;
 using Hyper.Collisions.Bepu;
@@ -23,6 +24,8 @@ internal class Scene : IInputSubscriber
     private readonly List<LightSource> _lightSources;
 
     private readonly List<Projectile> _projectiles;
+
+    private readonly Dictionary<BodyHandle, Projectile> _projectilesBodyHandles;
 
     public Camera Camera { get; set; }
 
@@ -52,7 +55,13 @@ internal class Scene : IInputSubscriber
 
     private readonly List<Humanoid> _bots;
 
+    private readonly Dictionary<BodyHandle, Humanoid> _humanoidsBodyHandles;
+
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+
+    private ContactEvents _contactEvents;
+
+    private ContactEventHandler _contactEventHandler;
 
     public Scene(float aspectRatio)
     {
@@ -62,6 +71,7 @@ internal class Scene : IInputSubscriber
         _chunks = GetChunks(chunkFactory);
         _lightSources = GetLightSources(_chunksPerSide);
         _projectiles = new List<Projectile>();
+        _projectilesBodyHandles = new Dictionary<BodyHandle, Projectile>();
 
         Hud = new HudManager(aspectRatio);
 
@@ -77,17 +87,26 @@ internal class Scene : IInputSubscriber
 
         _characterControllers = new CharacterControllers(bufferPool);
 
-        _simulationManager = new SimulationManager<NarrowPhaseCallbacks, PoseIntegratorCallbacks>(new NarrowPhaseCallbacks(_characterControllers, _properties),
+        var threadDispatcher = CreateThreadDispatcher();
+
+        _contactEvents = new ContactEvents(threadDispatcher, bufferPool);
+
+        _simulationManager = new SimulationManager<NarrowPhaseCallbacks, PoseIntegratorCallbacks>(new NarrowPhaseCallbacks(_characterControllers, _properties, _contactEvents),
             new PoseIntegratorCallbacks(new System.Numerics.Vector3(0, -10, 0)),
-            new SolveDescription(6, 1), bufferPool);
+            new SolveDescription(6, 1), bufferPool, threadDispatcher);
+
+
+        _humanoidsBodyHandles = new Dictionary<BodyHandle, Humanoid>();
+        _contactEventHandler = new ContactEventHandler(_simulationManager.Simulation, _projectilesBodyHandles, _humanoidsBodyHandles);
 
         var characterInitialPosition = new Vector3(0, _scalarFieldGenerator.AvgElevation + 8, 15);
-        _player = new Player(CreatePhysicalHumanoid(characterInitialPosition));
+        _player = CreatePlayer(CreatePhysicalHumanoid(characterInitialPosition));
 
         int botsCount = 3;
+
         _bots = Enumerable.Range(0, botsCount) // initialize them however you like
             .Select(i => new Vector3(i * 4 - botsCount * 2, _scalarFieldGenerator.AvgElevation + 5, i * 4 - botsCount * 2))
-            .Select(pos => new Humanoid(CreatePhysicalHumanoid(pos)))
+            .Select(pos => CreateNewHumanoid(CreatePhysicalHumanoid(pos)))
             .ToList();
 
         var carInitialPosition = new Vector3(5, _scalarFieldGenerator.AvgElevation + 5, 12);
@@ -99,6 +118,28 @@ internal class Scene : IInputSubscriber
         {
             chunk.CreateCollisionSurface(_simulationManager.Simulation, _simulationManager.BufferPool);
         }
+    }
+
+    private static ThreadDispatcher CreateThreadDispatcher()
+    {
+        int targetThreadCount = int.Max(1, Environment.ProcessorCount > 4 ? Environment.ProcessorCount - 2 : Environment.ProcessorCount - 1);
+        return new ThreadDispatcher(targetThreadCount);
+    }
+
+    private Player CreatePlayer(PhysicalCharacter character)
+    {
+        Player player = new Player(character);
+        _humanoidsBodyHandles.Add(character.BodyHandle, player);
+        _contactEvents.Register(_simulationManager.Simulation.Bodies[character.BodyHandle].CollidableReference, _contactEventHandler);
+        return player;
+    }
+
+    private Humanoid CreateNewHumanoid(PhysicalCharacter character)
+    {
+        Humanoid humanoid = new Humanoid(character);
+        _humanoidsBodyHandles.Add(character.BodyHandle, humanoid);
+        _contactEvents.Register(_simulationManager.Simulation.Bodies[character.BodyHandle].CollidableReference, _contactEventHandler);
+        return humanoid;
     }
 
     public void Render()
@@ -147,7 +188,7 @@ internal class Scene : IInputSubscriber
         _projectiles.RemoveAll(x => x.IsDead);
         foreach (var projectile in _projectiles)
         {
-            projectile.Update(_simulationManager.Simulation, dt, _simulationManager.BufferPool);
+            projectile.Update(_simulationManager.Simulation, dt, _simulationManager.BufferPool, _projectilesBodyHandles, _contactEvents);
         }
     }
 
@@ -254,6 +295,7 @@ internal class Scene : IInputSubscriber
             Camera.UpdateWithCharacter(_player);
 
             _simulationManager.Simulation.Timestep((float)e.Time, _simulationManager.ThreadDispatcher);
+            _contactEvents.Flush();
         });
 
         context.RegisterMouseButtonHeldCallback(MouseButton.Left, (e) =>
@@ -289,6 +331,8 @@ internal class Scene : IInputSubscriber
                 Conversions.ToNumericsVector(Camera.Front) * 15,
                 new ProjectileMesh(2, 0.5f, 0.5f), lifeTime: 5); // let's throw some refrigerators
             _projectiles.Add(projectile);
+            _projectilesBodyHandles.Add(projectile.BodyHandle, projectile);
+            _contactEvents.Register(_simulationManager.Simulation.Bodies[projectile.BodyHandle].CollidableReference, _contactEventHandler);
         });
     }
 
