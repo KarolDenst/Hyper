@@ -1,4 +1,5 @@
 ﻿using Hyper.Collisions.Bepu;
+using Hyper.Collisions.Bepu.RayCasting;
 using Hyper.TypingUtils;
 using OpenTK.Mathematics;
 
@@ -6,6 +7,7 @@ namespace Hyper.GameEntities;
 
 internal class Player : Humanoid
 {
+    private float _rayOffsetLength = 3f;
     public Player(PhysicalCharacter physicalCharacter) : base(physicalCharacter)
     { }
 
@@ -21,4 +23,12 @@ internal class Player : Humanoid
 
     public System.Numerics.Vector3 GetCharacterRay(Vector3 viewDirection, float length)
         => PhysicalCharacter.Pose.Position + Conversions.ToNumericsVector(viewDirection) * length;
+
+    public Ray GetRay(Vector3 viewDirection, float length)
+        => new Ray
+        {
+            Direction = Conversions.ToNumericsVector(viewDirection),
+            MaximumT = length,
+            Origin = PhysicalCharacter.Pose.Position + System.Numerics.Vector3.UnitX /*Conversions.ToNumericsVector(viewDirection)*/ * _rayOffsetLength /*+ System.Numerics.Vector3.UnitY*/
+        };
 }

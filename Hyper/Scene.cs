@@ -3,6 +3,7 @@ using BepuPhysics;
 using BepuUtilities.Memory;
 using Hyper.Collisions;
 using Hyper.Collisions.Bepu;
+using Hyper.Collisions.Bepu.RayCasting;
 using Hyper.GameEntities;
 using Hyper.HUD;
 using Hyper.MarchingCubes;
@@ -21,6 +22,8 @@ internal class Scene : IInputSubscriber
     private readonly List<Chunk> _chunks;
 
     private readonly List<LightSource> _lightSources;
+
+    private readonly LightSource _endOfRay;
 
     private readonly List<Projectile> _projectiles;
 
@@ -54,6 +57,14 @@ internal class Scene : IInputSubscriber
 
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
+    private int _raysMaxCount = 1;
+    private Buffer<RayHit> _rayCastingResults;
+    private HitHandler _hitHandler;
+
+    private LineRenderer _lineRenderer;
+
+    private float maxT = 20f;
+
     public Scene(float aspectRatio)
     {
         _scalarFieldGenerator = new ScalarFieldGenerator(1);
@@ -61,6 +72,7 @@ internal class Scene : IInputSubscriber
 
         _chunks = GetChunks(chunkFactory);
         _lightSources = GetLightSources(_chunksPerSide);
+        _endOfRay = new LightSource(CubeMesh.Vertices, new Vector3(0, 0, 0), new Vector3(0.5f, 0.5f, 0.5f));
         _projectiles = new List<Projectile>();
 
         Hud = new HudManager(aspectRatio);
@@ -69,9 +81,19 @@ internal class Scene : IInputSubscriber
         _lightSourceShader = ShaderFactory.CreateLightSourceShader();
         _characterShader = ShaderFactory.CreateModelShader();
 
+        _lineRenderer = new LineRenderer(_lightSourceShader, _scale);
+
         RegisterCallbacks();
 
         var bufferPool = new BufferPool();
+
+        bufferPool.Take(_raysMaxCount, out _rayCastingResults);
+        for (int i = 0; i < _raysMaxCount; ++i)
+        {
+            _rayCastingResults[i].T = 20f;
+            _rayCastingResults[i].Hit = false;
+        }
+        _hitHandler = new HitHandler { Hits = _rayCastingResults };
 
         _properties = new CollidableProperty<SimulationProperties>();
 
@@ -123,6 +145,8 @@ internal class Scene : IInputSubscriber
         {
             light.Render(_lightSourceShader, _scale, Camera.ReferencePointPosition);
         }
+
+        RenderPlayerRay(_player);
 
         ShaderFactory.SetUpCharacterShaderParams(_characterShader, Camera, _lightSources, _scale);
 
@@ -253,6 +277,17 @@ internal class Scene : IInputSubscriber
 
             Camera.UpdateWithCharacter(_player);
 
+            //var ray = _player.GetRay(Camera.Front, 10f);
+            var ray = new Ray
+            {
+                Direction = Conversions.ToNumericsVector(Camera.Front),
+                MaximumT = maxT,
+                Origin = _player.PhysicalCharacter.Pose.Position + Conversions.ToNumericsVector(Camera.Front) * 3
+            };
+            _hitHandler.Hits[0].T = maxT;
+            _hitHandler.Hits[0].Hit = false;
+            _simulationManager.Simulation.RayCast(ray.Origin, ray.Direction, ray.MaximumT, ref _hitHandler, 0);
+
             _simulationManager.Simulation.Timestep((float)e.Time, _simulationManager.ThreadDispatcher);
         });
 
@@ -260,7 +295,9 @@ internal class Scene : IInputSubscriber
         {
             foreach (var chunk in _chunks)
             {
-                if (chunk.Mine(Conversions.ToOpenTKVector(_player.GetCharacterRay(Camera.Front, 1)), 3, (float)e.Time))
+                Vector3 rayStart = Conversions.ToOpenTKVector(_player.PhysicalCharacter.Pose.Position) + Camera.Front * 3;
+                Vector3 rayEnd = rayStart + Camera.Front * _hitHandler.Hits[0].T;
+                if (chunk.Mine(rayEnd, 3, (float)e.Time))
                 {
                     chunk.UpdateCollisionSurface(_simulationManager.Simulation, _simulationManager.BufferPool);
                     return;
@@ -296,4 +333,15 @@ internal class Scene : IInputSubscriber
         => new(_characterControllers, _properties, Conversions.ToNumericsVector(initialPosition),
             minimumSpeculativeMargin: 0.1f, mass: 1, maximumHorizontalForce: 20, maximumVerticalGlueForce: 100, jumpVelocity: 6, speed: 4,
             maximumSlope: MathF.PI * 0.4f);
+
+
+    private void RenderPlayerRay(Player player)
+    {
+        Vector3 rayStart = Conversions.ToOpenTKVector(player.PhysicalCharacter.Pose.Position) + Camera.Front * 3;
+        Vector3 rayEnd = rayStart + Camera.Front * _hitHandler.Hits[0].T;
+
+        _endOfRay.Position = rayEnd;
+        _endOfRay.Render(_lightSourceShader, _scale, Camera.ReferencePointPosition);
+    }
+
 }
